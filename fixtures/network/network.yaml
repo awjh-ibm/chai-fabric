@@ -1,0 +1,173 @@
+---
+    - name: Deploy blockchain infrastructure and smart contracts
+      hosts: localhost
+      vars:
+        infrastructure:
+          type: docker
+          docker:
+            network: hub_default
+        organizations:
+          - &Org1
+            msp:
+              id: "org1Msp"
+              admin:
+                identity: "org1"
+                secret: "org1Adminpw"
+            ca: &Org1CA
+              id: "org1CA"
+              admin_identity: "org1-admin"
+              admin_secret: "adminpw"
+              tls:
+                enabled: false
+              docker:
+                name: ca.org1.example.com
+                hostname: ca.org1.example.com
+                port: 8050
+            peers:
+              - &Org1Peer1
+                id: "org1Peer1"
+                identity: "org1peer1"
+                secret: "org1peer1pw"
+                database_type: couchdb
+                tls:
+                  enabled: false
+                  identity: "org1peer1tls"
+                  secret: "org1peer1tlspw"
+                docker:
+                  name: peer0.org1.example.com
+                  hostname: peer0.org1.example.com
+                  port: 8051
+                  chaincode_name_prefix: at
+                  chaincode_port: 8052
+                  operations_port: 8053
+                  couchdb:
+                    name: couchdb0.org1.example.com
+                    hostname: couchdb0.org1.example.com
+                    port: 8054
+            nodes: "{{ playbook_dir }}/connection/nodes/org1"
+            wallet: "{{ playbook_dir }}/connection/wallet/org1"
+            gateways: "{{ playbook_dir }}/connection/gateways/org1"
+          - &Org2
+            msp:
+              id: "org2Msp"
+              admin:
+                identity: "org2"
+                secret: "org2Adminpw"
+            ca: &Org2CA
+              id: "org2CA"
+              admin_identity: "org2-admin"
+              admin_secret: "adminpw"
+              tls:
+                enabled: false
+              docker:
+                name: ca.org2.example.com
+                hostname: ca.org2.example.com
+                port: 9050
+            peers:
+              - &Org2Peer1
+                id: "org2Peer1"
+                identity: "org2peer1"
+                secret: "org2peer1pw"
+                database_type: couchdb
+                tls:
+                  enabled: false
+                  identity: "org2peer1tls"
+                  secret: "org2peer1tlspw"
+                docker:
+                  name: peer0.org2.example.com
+                  hostname: peer0.org2.example.com
+                  port: 9051
+                  chaincode_name_prefix: at
+                  chaincode_port: 9052
+                  operations_port: 9053
+                  couchdb:
+                    name: couchdb0.org2.example.com
+                    hostname: couchdb0.org2.example.com
+                    port: 9054
+            nodes: "{{ playbook_dir }}/connection/nodes/org2"
+            wallet: "{{ playbook_dir }}/connection/wallet/org2"
+            gateways: "{{ playbook_dir }}/connection/gateways/org2"
+          - &OrdererOrg
+            msp:
+              id: "ordererMsp"
+              admin:
+                identity: "ordererAdmin"
+                secret: "ordererAdminpw"
+            ca: &OrdererCA
+              id: "ordererCA"
+              admin_identity: "admin"
+              admin_secret: "adminpw"
+              tls:
+                enabled: false
+              docker:
+                name: ca.orderer.example.com
+                hostname: ca.orderer.example.com
+                port: 7050
+            orderer: &Orderer
+              id: "orderer1"
+              identity: "orderer1"
+              secret: "orderer1pw"
+              tls:
+                enabled: false
+                identity: "orderer1tls"
+                secret: "orderer1tlspw"
+              consortium:
+                members:
+                  - *Org1
+                  - *Org2
+              block_configuration:
+                timeout: 10ms
+              docker:
+                name: orderer.example.com
+                hostname: orderer.example.com
+                port: 7051
+                operations_port: 7052
+                cluster_name: "OrdererCluster"
+            nodes: "{{ playbook_dir }}/connection/nodes/orderer"
+            wallet: "{{ playbook_dir }}/connection/wallet/orderer"
+            gateways: "{{ playbook_dir }}/connection/gateways/orderer"
+        channels:
+          - &testChannel
+            name: test
+            orderer: *Orderer
+            members:
+              - <<: *Org1
+                committing_peers:
+                  - *Org1Peer1
+                anchor_peers:
+                  - *Org1Peer1
+              - <<: *Org2
+                committing_peers:
+                  - *Org2Peer1
+                anchor_peers:
+                  - *Org2Peer1
+        contracts:
+          - &testnetwork
+            name: assertion-contract
+            version: "0.0.1"
+            package: "{{ playbook_dir }}/chaincode/assertion-contract@0.0.1.cds"
+            channels:
+              - <<: *testChannel
+                collections_config: "{{ playbook_dir }}/chaincode/collections.json"
+                endorsement_policy: "OR('org1Msp.member', 'org2Msp.member')"
+                endorsing_members:
+                  - <<: *Org1
+                    endorsing_peers:
+                      - <<: *Org1Peer1
+                  - <<: *Org2
+                    endorsing_peers:
+                      - <<: *Org2Peer1
+        gateways:
+          - name: gateway1
+            organization:
+              <<: *Org1
+              gateway_peers:
+                - *Org1Peer1
+          - name: gateway2
+            organization:
+              <<: *Org2
+              gateway_peers:
+                - *Org2Peer1
+      roles:
+        - ibm.blockchain_platform_manager
+  

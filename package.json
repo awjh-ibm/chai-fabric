@@ -1,0 +1,31 @@
+{
+  "name": "ibp-assertions",
+  "version": "0.0.1",
+  "description": "Chai assertions for IBM Blockchain Platform",
+  "main": "dist/index.js",
+  "typings": "dist/index.d.ts",
+  "scripts": {
+    "test": "./scripts/start-network.sh && npm run mocha",
+    "mocha": "HFC_LOGGING='{\"error\": \"/dev/null\"}' TS_NODE_FILES=true mocha -r ts-node/register 'src/test/functional/*.spec.ts' --timeout 30000",
+    "build": "tsc"
+  },
+  "author": "ibm-blockchain",
+  "license": "Apache-2.0",
+  "devDependencies": {
+    "@types/chai": "^4.2.11",
+    "@types/mocha": "^8.0.0",
+    "@types/uuidv4": "^5.0.0",
+    "fs-extra": "^9.0.1",
+    "mocha": "^8.0.1",
+    "ts-node": "^8.10.2",
+    "typescript": "^3.9.6",
+    "uuidv4": "^6.2.0"
+  },
+  "dependencies": {
+    "chai": "^4.2.0",
+    "fabric-client": "^1.4.10",
+    "fabric-network": "^1.4.10",
+    "fabric-shim": "^1.4.5",
+    "nano": "^8.2.2"
+  }
+}
