@@ -71,7 +71,7 @@ export class PromiseAssertion extends Promise<Chai.Assertion> implements Languag
         });
 
         methods.forEach((method) => {
-            (this as any)[method] = assertion.method;
+            (this as any)[method] = assertion[method];
         });
     }
 }
