@@ -9,7 +9,7 @@
     "mocha": "HFC_LOGGING='{\"error\": \"/dev/null\"}' TS_NODE_FILES=true mocha -r ts-node/register 'src/test/functional/*.spec.ts' --timeout 30000",
     "prepare": "npm run build",
     "build": "tsc && npm run copyChaiTypes",
-    "copyChaiTypes": "cat types.d.ts >> dist/index.d.ts"
+    "copyChaiTypes": "cat types.d.ts | sed 's#./src#../src#g' >> dist/index.d.ts"
   },
   "author": "ibm-blockchain",
   "license": "Apache-2.0",
