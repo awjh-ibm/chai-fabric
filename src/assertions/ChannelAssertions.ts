@@ -1,5 +1,6 @@
 import { Channel } from '../helpers/Channel';
 import { PromiseAssertion } from './PromiseAssertion';
+import { ASSERTION_FAILED, WAIT_FOR_FLAG } from './utils';
 
 class ChannelAssertionMethods {
     private chai: Chai.ChaiStatic;
@@ -14,22 +15,22 @@ class ChannelAssertionMethods {
 }
 
 export const ChannelAssertions = (chai: Chai.ChaiStatic): void => {
-    const collectionAssertionMethods = new ChannelAssertionMethods(chai);
+    const channelAssertionMethods = new ChannelAssertionMethods(chai);
 
     chai.Assertion.addChainableMethod('transaction', function (transactionId: string) {
         return new PromiseAssertion(this, async (resolve: (msg?: any) => void, reject: (msg?: string) => void) => {
             try {
-                await collectionAssertionMethods.hasTransaction(this._obj, transactionId, chai.util.flag(this, 'negate'));
+                await channelAssertionMethods.hasTransaction(this._obj, transactionId, chai.util.flag(this, 'negate'));
                 chai.util.flag(this, 'transaction', transactionId);
             } catch (err) {
-                chai.util.flag(this, 'transaction', 'ASSERTION_FAILED');
+                chai.util.flag(this, 'transaction', ASSERTION_FAILED);
                 reject(err);
             };
 
             resolve(this);
         })
     }, function () {
-        chai.util.flag(this, 'transaction', 'WAIT_FOR_FLAG');
+        chai.util.flag(this, 'transaction', WAIT_FOR_FLAG);
     });
 }
 

@@ -10,6 +10,9 @@ declare global {
             keyWithValue(key: string, expectedValue: any): Assertion;
             compositeKeyWithValue(objectType: string, attributes: string[], expectedValue: any): Assertion;
 
+            // KeyValue
+            value(expectedValue: any): Assertion;
+
             // Channel
             transaction(transactionId: string): Assertion;
             boo(transactionId: string): Assertion;

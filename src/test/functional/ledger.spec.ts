@@ -1,6 +1,6 @@
 import * as chai from 'chai';
 import { Contract, Gateway } from 'fabric-network';
-import { uuid } from 'uuidv4';
+import { v4 as uuid } from 'uuid';
 import { Channel, ibpAssertions } from '../..';
 import { setup } from './utils';
 

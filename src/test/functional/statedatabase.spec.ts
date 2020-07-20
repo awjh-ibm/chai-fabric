@@ -1,18 +1,23 @@
 import * as chai from 'chai';
 import { Contract, Gateway } from 'fabric-network';
-import { uuid } from 'uuidv4';
-import { Collection, ibpAssertions, StateDatabase } from '../..';
+import { v4 as uuid } from 'uuid';
+import { Collection, ibpAssertions, StateDatabase, Channel } from '../..';
 import { CHAINCODE_NAME, CHANNEL_NAME, setup } from './utils';
 import { ChaincodeStub } from 'fabric-shim';
+import { KeyValue } from '../../helpers/KeyValue';
 
 const expect = chai.expect;
 chai.use(ibpAssertions);
 
 describe('StateDatabase', () => {
+    const objectType = 'com.example.SimpleAsset';
+
     let gateway: Gateway;
     let contract: Contract;
     let org1Database: StateDatabase;
-
+    let org1Collection: Collection;
+    let worldState: Collection;
+    
     before(async () => {
         const setupDetails = await setup();
 
@@ -20,6 +25,8 @@ describe('StateDatabase', () => {
         contract = setupDetails.contract;
 
         org1Database = new StateDatabase('localhost', '8054');
+        org1Collection = await org1Database.getPrivateCollection(CHANNEL_NAME, CHAINCODE_NAME, 'org1Collection');
+        worldState = await org1Database.getWorldState(CHANNEL_NAME, CHAINCODE_NAME);
     });
 
     after(() => {
@@ -27,15 +34,6 @@ describe('StateDatabase', () => {
     });
 
     describe('Collection', () => {
-        const objectType = 'com.example.SimpleAsset';
-
-        let org1Collection: Collection;
-        let worldState: Collection;
-
-        before(async () => {
-            org1Collection = await org1Database.getPrivateCollection(CHANNEL_NAME, CHAINCODE_NAME, 'org1Collection');
-            worldState = await org1Database.getWorldState(CHANNEL_NAME, CHAINCODE_NAME);
-        });
 
         describe('.key', () => {
             let key: string;
@@ -226,7 +224,7 @@ describe('StateDatabase', () => {
                 }
             });
 
-            it ('should assert an error when expect tests a key to not exist but it does', async () => {
+            it ('should assert an error when expect tests a key to not have value but it does', async () => {
                 try {
                     await expect(org1Collection).to.not.have.compositeKeyWithValue(objectType, [id], {value: '100'});
                     chai.assert.fail('compositeKeyWithValue() should have asserted an error');
@@ -235,6 +233,63 @@ describe('StateDatabase', () => {
                         chai.assert.fail(err);
                     }
                 }
+            });
+        });
+    });
+
+    describe('KeyValue', () => {
+        describe('.value()', () => {
+            let keyValue: KeyValue;
+            let id: string;
+            let transactionId: string;
+
+            beforeEach(async () => {
+                const transaction = contract.createTransaction('createSimpleAsset');
+                transactionId = transaction.getTransactionID().getTransactionID();
+                transaction.setEndorsingOrganizations('org1Msp');
+                id = uuid();
+
+                await transaction.submit(id, '100', 'org1Collection', 'org1Collection');
+
+                keyValue = await org1Collection.get(objectType, [id]);
+            });
+
+            it ('should satisfy expect when has value', async () => {
+                await expect(keyValue).to.have.value({value: '100'});
+            });
+
+            it ('should satisfy expect not when does not have value', async () => {
+                await expect(keyValue).to.not.have.value({value: '101'});
+            });
+
+            it ('should assert an error when expect tests a key value to have value but it does not', async () => {
+                try {
+                    await expect(keyValue).to.have.value({value: '101'});
+                    chai.assert.fail('value() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Value at ${keyValue.key()} does not equal expected value`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should assert an error when expect tests a key value to not have value but it does', async () => {
+                try {
+                    await expect(keyValue).to.not.have.value({value: '100'});
+                    chai.assert.fail('value() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Value at ${keyValue.key()} does equal expected value`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should work when chained with .key()', async () => {
+                await expect(org1Collection).to.have.key(keyValue.key()).with.value({value: '100'});
+            });
+
+            it ('should work when chained with .compositeKey()', async () => {
+                await expect(org1Collection).to.have.compositeKey(objectType, [id]).with.value({value: '100'});
             });
         });
     });

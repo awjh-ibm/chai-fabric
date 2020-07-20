@@ -1,6 +1,8 @@
 import { Collection } from '../helpers/Collection';
 import { ChaincodeStub } from 'fabric-shim';
 import { PromiseAssertion } from './PromiseAssertion';
+import { KeyValueAssertionMethods } from './KeyValueAssertions'
+import { ASSERTION_FAILED, WAIT_FOR_FLAG } from './utils';
 
 class CollectionAssertionMethods {
     private chai: Chai.ChaiStatic;
@@ -13,12 +15,12 @@ class CollectionAssertionMethods {
         this.chai.assert.equal(!not, await collection.exists(key), `Key ${key}${not ? '' : ' not'} found`);
     }
 
-    public async hasValue(collection: Collection, key: string, expectedValue: string, not: boolean) {
-        const actualValue = await collection.get(key);
+    public async hasValue(collection: Collection, key: string, expectedValue: any, not: boolean) {
+        const keyValue = await collection.get(key);
 
-        const assertionMethod: keyof Chai.AssertStatic = not ? 'notDeepEqual' : 'deepEqual';
+        const keyAssertionMethods = new KeyValueAssertionMethods(this.chai);
 
-        this.chai.assert[assertionMethod](actualValue, expectedValue, `Value at ${key} does${not ? '' : ' not'} equal expected value`);
+        keyAssertionMethods.hasValue(keyValue, expectedValue, not);
     }
 }
 
@@ -30,11 +32,15 @@ export const CollectionAssertions = (chai: Chai.ChaiStatic): void => {
             const obj = chai.util.flag(this, 'object');
 
             if (obj instanceof Collection) {
+                chai.util.flag(this, 'key', WAIT_FOR_FLAG);
+
                 return new PromiseAssertion(this, async (resolve: any, reject: any) => {
                     try {
                         await collectionAssertionMethods.hasKey(this._obj, key, chai.util.flag(this, 'negate'));
+                        chai.util.flag(this, 'key', key);
                     } catch (err) {
                         reject(err)
+                        chai.util.flag(this, 'key', ASSERTION_FAILED);
                     }
 
                     resolve();
@@ -45,16 +51,22 @@ export const CollectionAssertions = (chai: Chai.ChaiStatic): void => {
         }
     });
 
-    chai.Assertion.addMethod('compositeKey', function (objectType: string, attributes: string[]) {
-        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+    chai.Assertion.addChainableMethod('compositeKey', function (objectType: string, attributes: string[]) {
+        const key = ChaincodeStub.prototype.createCompositeKey(objectType, attributes);
+        
+        return new PromiseAssertion(this, async (resolve: (msg?: any) => void, reject: (msg?: string) => void) => {
             try {
-                await collectionAssertionMethods.hasKey(this._obj, ChaincodeStub.prototype.createCompositeKey(objectType, attributes), chai.util.flag(this, 'negate'));
+                await collectionAssertionMethods.hasKey(this._obj, key, chai.util.flag(this, 'negate'));
+                chai.util.flag(this, 'key', key);
             } catch (err) {
+                chai.util.flag(this, 'key', ASSERTION_FAILED);
                 reject(err);
-            }
-            
-            resolve();
-        });      
+            };
+
+            resolve(this);
+        })
+    }, function () {
+        chai.util.flag(this, 'key', WAIT_FOR_FLAG);
     });
 
     chai.Assertion.addMethod('keyWithValue', async function (key: string, expectedValue: any) {

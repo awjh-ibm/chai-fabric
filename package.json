@@ -12,20 +12,20 @@
   "author": "ibm-blockchain",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/chai": "^4.2.11",
-    "@types/mocha": "^8.0.0",
-    "@types/uuidv4": "^5.0.0",
-    "fs-extra": "^9.0.1",
-    "mocha": "^8.0.1",
-    "ts-node": "^8.10.2",
-    "typescript": "^3.9.6",
-    "uuidv4": "^6.2.0"
+    "@types/chai": "4.2.4",
+    "@types/mocha": "2.2.44",
+    "@types/uuid": "3.4.3",
+    "fs-extra": "8.1.0",
+    "mocha": "3.4.2",
+    "ts-node": "4.0.2",
+    "typescript": "3.7.5",
+    "uuid": "3.1.0"
   },
   "dependencies": {
-    "chai": "^4.2.0",
-    "fabric-client": "^1.4.10",
-    "fabric-network": "^1.4.10",
-    "fabric-shim": "^1.4.5",
-    "nano": "^8.2.2"
+    "chai": "4.2.0",
+    "fabric-client": "1.4.11",
+    "fabric-network": "1.4.11",
+    "fabric-shim": "1.4.5",
+    "nano": "8.2.2"
   }
 }

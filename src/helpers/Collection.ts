@@ -1,11 +1,12 @@
 import * as nano from 'nano';
 import { ChaincodeStub } from 'fabric-shim';
+import { KeyValue } from './KeyValue';
 
 export interface ICollection {
     exists(key: string): Promise<boolean>;
     exists(objectType: string, attributes: string[]): Promise<boolean>;
-    get(key: string): Promise<any>;
-    get(objectType: string, attributes: string[]): Promise<any>;
+    get(key: string): Promise<KeyValue>;
+    get(objectType: string, attributes: string[]): Promise<KeyValue>;
 }
 
 export class Collection implements ICollection {
@@ -30,9 +31,9 @@ export class Collection implements ICollection {
         }
     }
 
-    public async get(key: string): Promise<any>;
-    public async get(objectType: string, attributes: string[]): Promise<any>;
-    public async get(keyOrObjectType: any, attributes?: string []): Promise<any> {
+    public async get(key: string): Promise<KeyValue>;
+    public async get(objectType: string, attributes: string[]): Promise<KeyValue>;
+    public async get(keyOrObjectType: any, attributes?: string []): Promise<KeyValue> {
         const key = this.formatKey(keyOrObjectType, attributes);
 
         let response: any;
@@ -44,7 +45,7 @@ export class Collection implements ICollection {
         }
 
         if (Buffer.isBuffer(response)) {
-            return response.toString();
+            return new KeyValue(key, response.toString());
         }
 
         if (typeof response === 'object') {
@@ -55,7 +56,7 @@ export class Collection implements ICollection {
             }
         }
 
-        return response;
+        return new KeyValue(key, response);
     }
 
     private formatKey(keyOrObjectType: string, attributes?: string[]) {
