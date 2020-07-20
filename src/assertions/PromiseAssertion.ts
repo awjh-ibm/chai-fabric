@@ -1,8 +1,60 @@
-import * as chai from 'chai';
 const languageChains = ['to', 'be', 'been', 'is', 'that', 'which', 'and', 'has', 'have', 'with', 'at', 'of', 'same', 'but', 'does'];
+const methods = ['functionAndParameters', 'writeTo', 'readFrom', 'value']; // TODO add tests to ensure all have been covered
 
-export class PromiseAssertion<T> extends Promise<T> {
+interface LanguageChains {
+    to: Chai.Assertion;
+    be: Chai.Assertion;
+    been: Chai.Assertion;
+    is: Chai.Assertion;
+    that: Chai.Assertion;
+    which: Chai.Assertion;
+    and: Chai.Assertion;
+    has: Chai.Assertion;
+    have: Chai.Assertion;
+    with: Chai.Assertion;
+    at: Chai.Assertion;
+    of: Chai.Assertion;
+    same: Chai.Assertion;
+    but: Chai.Assertion;
+    does: Chai.Assertion;
+}
+
+export interface ChainMethods {
+    // Collection
+    compositeKey(objectType: string, attributes: string[]): PromiseAssertion;
+    keyWithValue(key: string, expectedValue: any): PromiseAssertion;
+    compositeKeyWithValue(objectType: string, attributes: string[], expectedValue: any): PromiseAssertion;
+
+    // KeyValue
+    value(expectedValue: any): PromiseAssertion;
+
+    // Channel
+    transaction(transactionId: string): PromiseAssertion;
+
+    // Transaction
+    functionAndParameters(functionName: string, parameters: string[]): PromiseAssertion;
+    writeTo(collectionName: string): PromiseAssertion;
+    readFrom(collectionName: string): PromiseAssertion;
+}
+
+export class PromiseAssertion extends Promise<Chai.Assertion> implements LanguageChains {
     private readonly assertion: any;
+
+    public to: Chai.Assertion;
+    public be: Chai.Assertion;
+    public been: Chai.Assertion;
+    public is: Chai.Assertion;
+    public that: Chai.Assertion;
+    public which: Chai.Assertion;
+    public and: Chai.Assertion;
+    public has: Chai.Assertion;
+    public have: Chai.Assertion;
+    public with: Chai.Assertion;
+    public at: Chai.Assertion;
+    public of: Chai.Assertion;
+    public same: Chai.Assertion;
+    public but: Chai.Assertion;
+    public does: Chai.Assertion;
 
     constructor(assertion: any, fn: any) {
         if (!fn) {
@@ -16,18 +68,10 @@ export class PromiseAssertion<T> extends Promise<T> {
 
         languageChains.forEach((chain) => {
             (this as any)[chain] = assertion;
-        })
-    }
+        });
 
-    async functionAndParameters(...args: any) {
-        return await this.assertion.functionAndParameters(...args);
-    }
-
-    async writeTo(...args: any) {
-        return await this.assertion.writeTo(...args);
-    }
-
-    async readFrom(...args: any) {
-        return await this.assertion.readFrom(...args);
+        methods.forEach((method) => {
+            (this as any)[method] = assertion.method;
+        });
     }
 }

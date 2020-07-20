@@ -28,7 +28,7 @@ export const CollectionAssertions = (chai: Chai.ChaiStatic): void => {
     const collectionAssertionMethods = new CollectionAssertionMethods(chai);
 
     chai.Assertion.overwriteMethod('key', function (_super) {
-        return function (key: string): Promise<void> {
+        return function (key: string): PromiseAssertion {
             const obj = chai.util.flag(this, 'object');
 
             if (obj instanceof Collection) {
@@ -43,7 +43,7 @@ export const CollectionAssertions = (chai: Chai.ChaiStatic): void => {
                         chai.util.flag(this, 'key', ASSERTION_FAILED);
                     }
 
-                    resolve();
+                    resolve(this);
                 });
             }
 
