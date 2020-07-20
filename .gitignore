@@ -3,3 +3,5 @@ node_modules
 
 fixtures/network/connection
 .DS_Store
+
+*.tgz

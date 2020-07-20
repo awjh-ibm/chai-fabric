@@ -1,5 +1,5 @@
 {
-  "name": "ibp-assertions",
+  "name": "chai-fabric",
   "version": "0.0.1",
   "description": "Chai assertions for IBM Blockchain Platform",
   "main": "dist/index.js",
@@ -7,6 +7,7 @@
   "scripts": {
     "test": "./scripts/start-network.sh && npm run mocha",
     "mocha": "HFC_LOGGING='{\"error\": \"/dev/null\"}' TS_NODE_FILES=true mocha -r ts-node/register 'src/test/functional/*.spec.ts' --timeout 30000",
+    "prepare": "npm run build",
     "build": "tsc"
   },
   "author": "ibm-blockchain",
