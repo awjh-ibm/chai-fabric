@@ -14,6 +14,14 @@
        "maxPeerCount": 0,
        "blockToLive": 0,
        "memberOnlyRead": false
+     },
+     {
+       "name": "org3Collection",
+       "policy": "OR('org3Msp.member')",
+       "requiredPeerCount": 0,
+       "maxPeerCount": 0,
+       "blockToLive": 0,
+       "memberOnlyRead": false
      }
    ]
    

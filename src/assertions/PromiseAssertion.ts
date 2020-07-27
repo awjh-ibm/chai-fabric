@@ -1,7 +1,8 @@
-const languageChains = ['to', 'be', 'been', 'is', 'that', 'which', 'and', 'has', 'have', 'with', 'at', 'of', 'same', 'but', 'does'];
-const methods = ['functionAndParameters', 'writeTo', 'readFrom', 'value']; // TODO add tests to ensure all have been covered
+const languageChains = ['only', 'to', 'be', 'been', 'is', 'that', 'which', 'and', 'has', 'have', 'with', 'at', 'of', 'same', 'but', 'does'];
+const methods = ['functionAndParameters', 'writeTo', 'readFrom', 'value', 'emit']; // TODO add tests to ensure all have been covered
 
 interface LanguageChains {
+    only: Chai.Assertion;
     to: Chai.Assertion;
     be: Chai.Assertion;
     been: Chai.Assertion;
@@ -32,14 +33,18 @@ export interface ChainMethods {
     transaction(transactionId: string): PromiseAssertion;
 
     // Transaction
+    only: Chai.Assertion;
+    event: PromiseAssertion;
     functionAndParameters(functionName: string, parameters: string[]): PromiseAssertion;
-    writeTo(collectionName: string): PromiseAssertion;
-    readFrom(collectionName: string): PromiseAssertion;
+    writeTo(...collectionName: string[]): PromiseAssertion;
+    readFrom(...collectionName: string[]): PromiseAssertion;
+    emit(name: string, data: string): PromiseAssertion;
 }
 
 export class PromiseAssertion extends Promise<Chai.Assertion> implements LanguageChains {
     private readonly assertion: any;
 
+    public only: Chai.Assertion;
     public to: Chai.Assertion;
     public be: Chai.Assertion;
     public been: Chai.Assertion;
@@ -55,8 +60,9 @@ export class PromiseAssertion extends Promise<Chai.Assertion> implements Languag
     public same: Chai.Assertion;
     public but: Chai.Assertion;
     public does: Chai.Assertion;
+    public event: Chai.Assertion;
 
-    constructor(assertion: any, fn: any) {
+    constructor(assertion: any, fn: any, omit: string[] = []) {
         if (!fn) {
             super(assertion);
             return;
@@ -71,7 +77,9 @@ export class PromiseAssertion extends Promise<Chai.Assertion> implements Languag
         });
 
         methods.forEach((method) => {
-            (this as any)[method] = assertion[method];
+            if (!omit.includes(method)) {
+                (this as any)[method] = assertion[method];
+            }
         });
     }
 }

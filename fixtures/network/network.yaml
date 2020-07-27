@@ -87,6 +87,46 @@
             nodes: "{{ playbook_dir }}/connection/nodes/org2"
             wallet: "{{ playbook_dir }}/connection/wallet/org2"
             gateways: "{{ playbook_dir }}/connection/gateways/org2"
+          - &Org3
+            msp:
+              id: "org3Msp"
+              admin:
+                identity: "org3"
+                secret: "org3Adminpw"
+            ca: &Org3CA
+              id: "org3CA"
+              admin_identity: "org3-admin"
+              admin_secret: "adminpw"
+              tls:
+                enabled: false
+              docker:
+                name: ca.org3.example.com
+                hostname: ca.org3.example.com
+                port: 10050
+            peers:
+              - &Org3Peer1
+                id: "org3Peer1"
+                identity: "org3peer1"
+                secret: "org3peer1pw"
+                database_type: couchdb
+                tls:
+                  enabled: false
+                  identity: "org3peer1tls"
+                  secret: "org3peer1tlspw"
+                docker:
+                  name: peer0.org3.example.com
+                  hostname: peer0.org3.example.com
+                  port: 10051
+                  chaincode_name_prefix: at
+                  chaincode_port: 10052
+                  operations_port: 10053
+                  couchdb:
+                    name: couchdb0.org3.example.com
+                    hostname: couchdb0.org3.example.com
+                    port: 10054
+            nodes: "{{ playbook_dir }}/connection/nodes/org3"
+            wallet: "{{ playbook_dir }}/connection/wallet/org3"
+            gateways: "{{ playbook_dir }}/connection/gateways/org3"
           - &OrdererOrg
             msp:
               id: "ordererMsp"
@@ -115,6 +155,7 @@
                 members:
                   - *Org1
                   - *Org2
+                  - *Org3
               block_configuration:
                 timeout: 10ms
               docker:
@@ -141,6 +182,11 @@
                   - *Org2Peer1
                 anchor_peers:
                   - *Org2Peer1
+              - <<: *Org3
+                committing_peers:
+                  - *Org3Peer1
+                anchor_peers:
+                  - *Org3Peer1
         contracts:
           - &testnetwork
             name: assertion-contract
@@ -149,7 +195,7 @@
             channels:
               - <<: *testChannel
                 collections_config: "{{ playbook_dir }}/chaincode/collections.json"
-                endorsement_policy: "OR('org1Msp.member', 'org2Msp.member')"
+                endorsement_policy: "OR('org1Msp.member', 'org2Msp.member', 'org3Msp.member')"
                 endorsing_members:
                   - <<: *Org1
                     endorsing_peers:
@@ -157,6 +203,9 @@
                   - <<: *Org2
                     endorsing_peers:
                       - <<: *Org2Peer1
+                  - <<: *Org3
+                    endorsing_peers:
+                      - <<: *Org3Peer1
         gateways:
           - name: gateway1
             organization:
@@ -168,6 +217,11 @@
               <<: *Org2
               gateway_peers:
                 - *Org2Peer1
+          - name: gateway3
+            organization:
+              <<: *Org3
+              gateway_peers:
+                - *Org3Peer1
       roles:
         - ibm.blockchain_platform_manager
   

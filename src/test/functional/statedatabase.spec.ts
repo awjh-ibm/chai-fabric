@@ -1,13 +1,13 @@
 import * as chai from 'chai';
 import { Contract, Gateway } from 'fabric-network';
 import { v4 as uuid } from 'uuid';
-import { Collection, ibpAssertions, StateDatabase, Channel } from '../..';
+import { Collection, chaiFabricAssertions, StateDatabase, Channel } from '../..';
 import { CHAINCODE_NAME, CHANNEL_NAME, setup } from './utils';
 import { ChaincodeStub } from 'fabric-shim';
 import { KeyValue } from '../../helpers/KeyValue';
 
 const expect = chai.expect;
-chai.use(ibpAssertions);
+chai.use(chaiFabricAssertions);
 
 describe('StateDatabase', () => {
     const objectType = 'com.example.SimpleAsset';
@@ -97,7 +97,7 @@ describe('StateDatabase', () => {
                 transaction.setEndorsingOrganizations('org1Msp');
                 id = uuid();
 
-                await transaction.submit(id, '100', 'org1Collection', 'org1Collection');
+                await transaction.submit(id, '100', 'org1Collection', 'org2Collection');
             });
             
             it ('should satisfy expect when a composite key exists', async () => {
@@ -191,7 +191,7 @@ describe('StateDatabase', () => {
                 transaction.setEndorsingOrganizations('org1Msp');
                 id = uuid();
 
-                await transaction.submit(id, '100', 'org1Collection', 'org1Collection');
+                await transaction.submit(id, '100', 'org1Collection', 'org2Collection');
             });
 
             it ('should satisfy expect when a composite key exists with value', async () => {
@@ -249,7 +249,7 @@ describe('StateDatabase', () => {
                 transaction.setEndorsingOrganizations('org1Msp');
                 id = uuid();
 
-                await transaction.submit(id, '100', 'org1Collection', 'org1Collection');
+                await transaction.submit(id, '100', 'org1Collection', 'org2Collection');
 
                 keyValue = await org1Collection.get(objectType, [id]);
             });

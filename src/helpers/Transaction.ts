@@ -18,19 +18,31 @@ export class Transaction implements ITransaction {
     public readonly chaincodeName: string;
     public readonly functionName: string;
     public readonly parameters: string[];
+    public readonly event: {name: string, data: string};
 
-    public constructor(transactionId: string, channelName: string, chaincodeName: string, functionName: string, parameters: string[], privateWrites: string[], privateReads: string[]) {
+    public constructor(transactionId: string, channelName: string, chaincodeName: string, functionName: string, parameters: string[], privateWrites: string[], privateReads: string[], event: {name: string, data: string}) {
         this.transactionId = transactionId;
+        this.channelName = channelName;
         this.chaincodeName = chaincodeName;
         this.functionName = functionName;
         this.parameters = parameters;
 
         this.privateWrites = privateWrites;
         this.privateReads = privateReads;
+
+        this.event = event;
+    }
+
+    public numberOfWrites(): number {
+        return this.privateWrites.length;
     }
 
     public writesTo(collection: string): boolean {
         return this.privateWrites.includes(collection);
+    }
+
+    public numberOfReads(): number {
+        return this.privateWrites.length;
     }
 
     public readsFrom(collection: string): boolean {

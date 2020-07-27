@@ -1,8 +1,8 @@
-import { ibpAssertions } from './assertions';
+import { chaiFabricAssertions } from './assertions';
 import { Channel, ICollection, ITransaction, StateDatabase } from './helpers';
 
 export {
-    ibpAssertions,
+    chaiFabricAssertions,
     Channel,
     StateDatabase,
     ICollection as Collection,

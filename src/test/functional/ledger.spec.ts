@@ -1,11 +1,11 @@
 import * as chai from 'chai';
 import { Contract, Gateway } from 'fabric-network';
 import { v4 as uuid } from 'uuid';
-import { Channel, ibpAssertions } from '../..';
+import { Channel, chaiFabricAssertions } from '../..';
 import { setup } from './utils';
 
 const expect = chai.expect;
-chai.use(ibpAssertions);
+chai.use(chaiFabricAssertions);
 
 describe('Ledger', () => {
     let gateway: Gateway;
@@ -138,115 +138,301 @@ describe('Ledger', () => {
                 await expect(channel).to.have.transaction(transactionId).with.functionAndParameters('createKeyValue', [key, '100']);
             });
         });
-    });
 
-    describe('.writeTo', async () => {
-        let transactionId: string;
-
-        beforeEach(async () => {
-            const transaction = contract.createTransaction('createSimpleAsset');
-            transaction.setEndorsingOrganizations('org1Msp');
-            transactionId = transaction.getTransactionID().getTransactionID();
-            const id = uuid();
+        describe('.writeTo', async () => {
+            let transactionId: string;
     
-            await transaction.submit(id, '100', 'org1Collection', 'org1Collection');
-        });
-
-        it ('should satisfy expect when transaction writes to collection', async () => {
-            const foundTransaction = channel.get(transactionId);
-
-            await expect(foundTransaction).to.writeTo('org1Collection');
-        });
-
-        it ('should satisfy expect not when transaction does not write to collection', async () => {
-            const foundTransaction = channel.get(transactionId);
-
-            await expect(foundTransaction).to.not.writeTo('org2Collection');
-        });
-
-        it ('should assert an error when expect tests transaction to write to collection but it does not', async () => {
-            const foundTransaction = channel.get(transactionId);
-
-            try {
-                await expect(foundTransaction).to.writeTo('org2Collection')
-                chai.assert.fail('writeTo() should have asserted an error');
-            } catch(err) {
-                if (!err.message.includes(`Transaction ${transactionId} does not write to collection`)) {
-                    chai.assert.fail(err);
-                }
-            }
-        });
-
-        it ('should assert an error when expect tests transaction to not write to collection but it does', async () => {
-            const foundTransaction = channel.get(transactionId);
-
-            try {
-                await expect(foundTransaction).to.not.writeTo('org1Collection')
-                chai.assert.fail('writeTo() should have asserted an error');
-            } catch(err) {
-                if (!err.message.includes(`Transaction ${transactionId} does write to collection`)) {
-                    chai.assert.fail(err);
-                }
-            }
-        });
-
-        it ('should work when chained with .transaction()', async () => {
-            await expect(channel).to.have.transaction(transactionId).to.writeTo('org1Collection');
-        });
-    });
-
-    describe('.readFrom', async () => {
-        let transactionId: string;
-
-        beforeEach(async () => {
-            const transaction = contract.createTransaction('createSimpleAsset');
-            transaction.setEndorsingOrganizations('org1Msp');
-            transactionId = transaction.getTransactionID().getTransactionID();
-            const id = uuid();
+            beforeEach(async () => {
+                const transaction = contract.createTransaction('createSimpleAsset');
+                transaction.setEndorsingOrganizations('org1Msp');
+                transactionId = transaction.getTransactionID().getTransactionID();
+                const id = uuid();
+        
+                await transaction.submit(id, '100', 'org1Collection', 'org2Collection');
+            });
     
-            await transaction.submit(id, '100', 'org1Collection', 'org1Collection');
-        });
+            it ('should satisfy expect when transaction writes to collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                await expect(foundTransaction).to.writeTo('org1Collection');
+            });
 
-        it ('should satisfy expect when transaction reads from collection', async () => {
-            const foundTransaction = channel.get(transactionId);
-
-            await expect(foundTransaction).to.readFrom('org1Collection');
-        });
-
-        it ('should satisfy expect not when transaction does not read from collection', async () => {
-            const foundTransaction = channel.get(transactionId);
-
-            await expect(foundTransaction).to.not.readFrom('org2Collection');
-        });
-
-        it ('should assert an error when expect tests transaction to read from collection but it does not', async () => {
-            const foundTransaction = channel.get(transactionId);
-
-            try {
-                await expect(foundTransaction).to.readFrom('org2Collection')
-                chai.assert.fail('readFrom() should have asserted an error');
-            } catch(err) {
-                if (!err.message.includes(`Transaction ${transactionId} does not read from collection`)) {
-                    chai.assert.fail(err);
+            it ('should satisfy expect when transaction only writes to collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                await expect(foundTransaction).to.only.writeTo('org1Collection', 'org2Collection');
+            });
+    
+            it ('should satisfy expect not when transaction does not write to collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                await expect(foundTransaction).to.not.writeTo('org3Collection');
+            });
+    
+            it ('should assert an error when expect tests transaction to write to collection but it does not', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                try {
+                    await expect(foundTransaction).to.writeTo('org3Collection')
+                    chai.assert.fail('writeTo() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not write to collection`)) {
+                        chai.assert.fail(err);
+                    }
                 }
-            }
-        });
+            });
 
-        it ('should assert an error when expect tests transaction to not read from collection but it does', async () => {
-            const foundTransaction = channel.get(transactionId);
-
-            try {
-                await expect(foundTransaction).to.not.readFrom('org1Collection')
-                chai.assert.fail('readFrom() should have asserted an error');
-            } catch(err) {
-                if (!err.message.includes(`Transaction ${transactionId} does read from collection`)) {
-                    chai.assert.fail(err);
+            it ('should assert an error when expect tests transaction to only write to collection but it does not', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                try {
+                    await expect(foundTransaction).to.only.writeTo('org1Collection')
+                    chai.assert.fail('writeTo() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not write only to collections`)) {
+                        chai.assert.fail(err);
+                    }
                 }
-            }
+            });
+    
+            it ('should assert an error when expect tests transaction to not write to collection but it does', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                try {
+                    await expect(foundTransaction).to.not.writeTo('org1Collection')
+                    chai.assert.fail('writeTo() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does write to collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+    
+            it ('should work when chained with .transaction()', async () => {
+                await expect(channel).to.have.transaction(transactionId).to.writeTo('org1Collection');
+            });
+        });
+    
+        describe('.readFrom', async () => {
+            let transactionId: string;
+    
+            beforeEach(async () => {
+                const transaction = contract.createTransaction('createSimpleAsset');
+                transaction.setEndorsingOrganizations('org1Msp');
+                transactionId = transaction.getTransactionID().getTransactionID();
+                const id = uuid();
+        
+                await transaction.submit(id, '100', 'org1Collection', 'org2Collection');
+            });
+    
+            it ('should satisfy expect when transaction reads from collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                await expect(foundTransaction).to.readFrom('org1Collection');
+            });
+
+            it ('should satisfy expect when transaction reads only from collections', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                await expect(foundTransaction).to.only.readFrom('org1Collection', 'org2Collection');
+            });
+    
+            it ('should satisfy expect not when transaction does not read from collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                await expect(foundTransaction).to.not.readFrom('org3Collection');
+            });
+    
+            it ('should assert an error when expect tests transaction to read from collection but it does not', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                try {
+                    await expect(foundTransaction).to.readFrom('org3Collection')
+                    chai.assert.fail('readFrom() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not read from collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should assert an error when expect tests transaction to only read from collection but it does not', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                try {
+                    await expect(foundTransaction).to.only.readFrom('org1Collection')
+                    chai.assert.fail('readFrom() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not read only from collections`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+    
+            it ('should assert an error when expect tests transaction to not read from collection but it does', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                try {
+                    await expect(foundTransaction).to.not.readFrom('org1Collection')
+                    chai.assert.fail('readFrom() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does read from collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+    
+            it ('should work when chained with .transaction()', async () => {
+                await expect(channel).to.have.transaction(transactionId).to.readFrom('org1Collection');
+            });
         });
 
-        it ('should work when chained with .transaction()', async () => {
-            await expect(channel).to.have.transaction(transactionId).to.readFrom('org1Collection');
+        describe('.emit', async () => {
+            let transactionIdEventEmitter: string;
+            let transactionIdNonEventEmitter: string;
+    
+            beforeEach(async () => {
+                const nonEventTransaction = contract.createTransaction('createSimpleAsset');
+                nonEventTransaction.setEndorsingOrganizations('org1Msp');
+                transactionIdNonEventEmitter = nonEventTransaction.getTransactionID().getTransactionID();
+                const id = uuid();
+        
+                await nonEventTransaction.submit(id, '100', 'org1Collection', 'org2Collection');
+
+                const eventTransaction = contract.createTransaction('emitEvent');
+                transactionIdEventEmitter = eventTransaction.getTransactionID().getTransactionID();
+        
+                await eventTransaction.submit('some name', 'some data');
+            });
+
+            it ('should satisfy expect when transaction emits event', async () => {
+                const foundTransaction = channel.get(transactionIdEventEmitter);
+
+                await expect(foundTransaction).to.emit('some name', 'some data');
+            });
+
+            it ('should satisfy expect when transaction does not emit event with name and data', async () => {
+                const foundTransaction = channel.get(transactionIdNonEventEmitter);
+
+                await expect(foundTransaction).to.not.emit('some name', 'some data');
+            });
+
+            it ('should assert an error when expect tests transaction to emit event but it does not emit any event', async () => {
+                const foundTransaction = channel.get(transactionIdNonEventEmitter);
+    
+                try {
+                    await expect(foundTransaction).to.emit('some name', 'some data');
+                    chai.assert.fail('emit() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionIdNonEventEmitter} does not emit event`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should assert an error when expect tests transaction to emit event but it does not emit event with name', async () => {
+                const foundTransaction = channel.get(transactionIdEventEmitter);
+    
+                try {
+                    await expect(foundTransaction).to.emit('some other name', 'some data');
+                    chai.assert.fail('emit() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionIdEventEmitter} does not emit event`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should assert an error when expect tests transaction to emit event but it does not emit event with data', async () => {
+                const foundTransaction = channel.get(transactionIdEventEmitter);
+    
+                try {
+                    await expect(foundTransaction).to.emit('some name', 'some other data');
+                    chai.assert.fail('emit() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionIdEventEmitter} does not emit event`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should assert an error when expect tests transaction to not emit event but it does', async () => {
+                const foundTransaction = channel.get(transactionIdEventEmitter);
+    
+                try {
+                    await expect(foundTransaction).to.not.emit('some name', 'some data');
+                    chai.assert.fail('emit() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionIdEventEmitter} does emit event`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should work when chained with .transaction()', async () => {
+                await expect(channel).to.have.transaction(transactionIdEventEmitter).to.emit('some name', 'some data');
+            });
+        });
+
+        describe('.event', () => {
+            let transactionIdEventEmitter: string;
+            let transactionIdNonEventEmitter: string;
+    
+            beforeEach(async () => {
+                const nonEventTransaction = contract.createTransaction('createSimpleAsset');
+                nonEventTransaction.setEndorsingOrganizations('org1Msp');
+                transactionIdNonEventEmitter = nonEventTransaction.getTransactionID().getTransactionID();
+                const id = uuid();
+        
+                await nonEventTransaction.submit(id, '100', 'org1Collection', 'org2Collection');
+
+                const eventTransaction = contract.createTransaction('emitEvent');
+                transactionIdEventEmitter = eventTransaction.getTransactionID().getTransactionID();
+        
+                await eventTransaction.submit('some name', 'some data');
+            });
+
+            it ('should satisfy expect when transaction emits an event and no passing args given', async () => {
+                const foundTransaction = channel.get(transactionIdEventEmitter);
+
+                await expect(foundTransaction).to.have.event;
+            });
+
+            it ('should satisfy expect when transaction does not emit an event and no passing args given', async () => {
+                const foundTransaction = channel.get(transactionIdNonEventEmitter);
+
+                await expect(foundTransaction).to.not.have.event;
+            });
+
+            it ('should assert an error when expect tests transaction to emit event but it does not and no passing args given', async () => {
+                const foundTransaction = channel.get(transactionIdNonEventEmitter);
+    
+                try {
+                    await expect(foundTransaction).to.have.event;
+                    chai.assert.fail('emit() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionIdNonEventEmitter} does not emit event`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should assert an error when expect tests transaction to not emit event but it does', async () => {
+                const foundTransaction = channel.get(transactionIdEventEmitter);
+    
+                try {
+                    await expect(foundTransaction).to.not.have.event;
+                    chai.assert.fail('emit() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionIdEventEmitter} does emit event`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should work when chained with .transaction()', async () => {
+                await expect(channel).to.have.transaction(transactionIdEventEmitter).with.event;
+            });
         });
     });
 });
