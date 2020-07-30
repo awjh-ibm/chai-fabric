@@ -35,6 +35,9 @@ export interface ChainMethods {
     // Transaction
     only: Chai.Assertion;
     event: PromiseAssertion;
+    write: Chai.Assertion;
+    read: Chai.Assertion;
+    worldState: PromiseAssertion;
     functionAndParameters(functionName: string, parameters: string[]): PromiseAssertion;
     writeTo(...collectionName: string[]): PromiseAssertion;
     writeToKey(key: string, ...collectionName: string[]): PromiseAssertion;

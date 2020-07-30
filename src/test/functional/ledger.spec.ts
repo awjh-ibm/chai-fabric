@@ -217,65 +217,96 @@ describe('Ledger', () => {
         });
 
         describe('.writeToKey', async () => {
-            let transactionId: string;
-            let key: string;
+            let privateStateTransactionId: string;
+            let worldStateTransactionId: string;
+            let compositeKey: string;
+            let id: string;
     
             beforeEach(async () => {
-                const transaction = contract.createTransaction('createSimpleAsset');
-                transaction.setEndorsingOrganizations('org1Msp');
-                transactionId = transaction.getTransactionID().getTransactionID();
-                const id = uuid();
+                const privateStateTransaction = contract.createTransaction('createSimpleAsset');
+                privateStateTransaction.setEndorsingOrganizations('org1Msp');
+                privateStateTransactionId = privateStateTransaction.getTransactionID().getTransactionID();
+                id = uuid();
 
-                key = ChaincodeStub.prototype.createCompositeKey(objectType, [id]);
+                compositeKey = ChaincodeStub.prototype.createCompositeKey(objectType, [id]);
         
-                await transaction.submit(id, '100', 'org1Collection', 'org2Collection');
+                await privateStateTransaction.submit(id, '100', 'org1Collection', 'org2Collection');
+
+                const worldStateTransaction = contract.createTransaction('createKeyValue');
+                worldStateTransactionId = worldStateTransaction.getTransactionID().getTransactionID();
+
+                await worldStateTransaction.submit(id, '100');
             });
     
-            it ('should satisfy expect when transaction writes to key in collection', async () => {
-                const foundTransaction = channel.get(transactionId);
+            it ('should satisfy expect when transaction writes to key in world state', async () => {
+                const foundTransaction = channel.get(worldStateTransactionId);
     
-                await expect(foundTransaction).to.writeToKey(key, 'org1Collection', 'org2Collection');
+                await expect(foundTransaction).to.writeToKey(id);
+            });
+
+            it ('should satisfy expect when transaction writes to key in collection', async () => {
+                const foundTransaction = channel.get(privateStateTransactionId);
+    
+                await expect(foundTransaction).to.writeToKey(compositeKey, 'org1Collection', 'org2Collection');
+            });
+
+            it ('should satisfy expect when transaction only writes to key in world state', async () => {
+                const foundTransaction = channel.get(worldStateTransactionId);
+    
+                await expect(foundTransaction).to.only.writeToKey(id);
             });
 
             it ('should satisfy expect when transaction only writes to key collection', async () => {
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
     
-                await expect(foundTransaction).to.only.writeToKey(key, 'org1Collection', 'org2Collection');
+                await expect(foundTransaction).to.only.writeToKey(compositeKey, 'org1Collection', 'org2Collection');
+            });
+
+            it ('should satisfy expect not when transaction does not write to world state', async () => {
+                const foundTransaction = channel.get(privateStateTransactionId);
+    
+                await expect(foundTransaction).to.not.writeToKey(id);
             });
     
             it ('should satisfy expect not when transaction does not write to collection', async () => {
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
     
-                await expect(foundTransaction).to.not.writeToKey(key, 'org3Collection');
+                await expect(foundTransaction).to.not.writeToKey(compositeKey, 'org3Collection');
+            });
+
+            it ('should satisfy expect not when transaction does not write to key in world state', async () => {
+                const foundTransaction = channel.get(worldStateTransactionId);
+    
+                await expect(foundTransaction).to.not.writeToKey('some key');
             });
 
             it ('should satisfy expect not when transaction does not write to key in collection', async () => {
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
     
                 await expect(foundTransaction).to.not.writeToKey('some key', 'org1Collection');
             });
     
             it ('should assert an error when expect tests transaction to write to collection but it does not', async () => {
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
     
                 try {
-                    await expect(foundTransaction).to.writeToKey(key, 'org3Collection')
+                    await expect(foundTransaction).to.writeToKey(compositeKey, 'org3Collection')
                     chai.assert.fail('writeToKey() should have asserted an error');
                 } catch(err) {
-                    if (!err.message.includes(`Transaction ${transactionId} does not write to collection`)) {
+                    if (!err.message.includes(`Transaction ${privateStateTransactionId} does not write to collection`)) {
                         chai.assert.fail(err);
                     }
                 }
             });
 
             it ('should assert an error when expect tests transaction to write to key in collection but it does not', async () => {
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
     
                 try {
                     await expect(foundTransaction).to.writeToKey('some key', 'org1Collection')
                     chai.assert.fail('writeToKey() should have asserted an error');
                 } catch(err) {
-                    if (!err.message.includes(`Transaction ${transactionId} does not write to key in collection`)) {
+                    if (!err.message.includes(`Transaction ${privateStateTransactionId} does not write to key in org1Collection`)) {
                         chai.assert.fail(err);
                     }
                 }
@@ -284,41 +315,41 @@ describe('Ledger', () => {
             it ('should assert an error when expect tests transaction to only write to collection but it does not', async () => {
                 const transaction = contract.createTransaction('createMultipleSimpleAsset');
                 transaction.setEndorsingOrganizations('org1Msp');
-                transactionId = transaction.getTransactionID().getTransactionID();
+                privateStateTransactionId = transaction.getTransactionID().getTransactionID();
                 const id = uuid();
                 const id2 = uuid();
 
-                key = ChaincodeStub.prototype.createCompositeKey(objectType, [id]);
+                compositeKey = ChaincodeStub.prototype.createCompositeKey(objectType, [id]);
         
                 await transaction.submit(`["${id}", "${id2}"]`, '100', 'org1Collection', 'org2Collection');
 
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
     
                 try {
-                    await expect(foundTransaction).to.only.writeToKey(key, 'org1Collection')
+                    await expect(foundTransaction).to.only.writeToKey(compositeKey, 'org1Collection')
                     chai.assert.fail('writeToKey() should have asserted an error');
                 } catch(err) {
-                    if (!err.message.includes(`Transaction ${transactionId} does not write only to key in collection org1Collection`)) {
+                    if (!err.message.includes(`Transaction ${privateStateTransactionId} does not write only to key in collection org1Collection`)) {
                         chai.assert.fail(err);
                     }
                 }
             });
     
             it ('should assert an error when expect tests transaction to not write to collection but it does', async () => {
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
     
                 try {
-                    await expect(foundTransaction).to.not.writeToKey(key, 'org1Collection')
+                    await expect(foundTransaction).to.not.writeToKey(compositeKey, 'org1Collection')
                     chai.assert.fail('writeToKey() should have asserted an error');
                 } catch(err) {
-                    if (!err.message.includes(`Transaction ${transactionId} does write to key in collection`)) {
+                    if (!err.message.includes(`Transaction ${privateStateTransactionId} does write to key in org1Collection`)) {
                         chai.assert.fail(err);
                     }
                 }
             });
     
             it ('should work when chained with .transaction()', async () => {
-                await expect(channel).to.have.transaction(transactionId).to.writeToKey(key, 'org1Collection');
+                await expect(channel).to.have.transaction(privateStateTransactionId).to.writeToKey(compositeKey, 'org1Collection');
             });
         });
 
@@ -379,7 +410,7 @@ describe('Ledger', () => {
                     await expect(foundTransaction).to.writeToCompositeKey('some key', ['key'], 'org1Collection')
                     chai.assert.fail('writeToCompositeKey() should have asserted an error');
                 } catch(err) {
-                    if (!err.message.includes(`Transaction ${transactionId} does not write to key in collection`)) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not write to key in org1Collection`)) {
                         chai.assert.fail(err);
                     }
                 }
@@ -413,7 +444,7 @@ describe('Ledger', () => {
                     await expect(foundTransaction).to.not.writeToCompositeKey(objectType, [id], 'org1Collection')
                     chai.assert.fail('writeToCompositeKey() should have asserted an error');
                 } catch(err) {
-                    if (!err.message.includes(`Transaction ${transactionId} does write to key in collection`)) {
+                    if (!err.message.includes(`Transaction ${transactionId} does write to key in org1Collection`)) {
                         chai.assert.fail(err);
                     }
                 }
@@ -499,65 +530,96 @@ describe('Ledger', () => {
         });
 
         describe('.readFromKey', async () => {
-            let transactionId: string;
-            let key: string;
-        
+            let privateStateTransactionId: string;
+            let worldStateTransactionId: string;
+            let compositeKey: string;
+            let id: string;
+    
             beforeEach(async () => {
-                const transaction = contract.createTransaction('createSimpleAsset');
-                transaction.setEndorsingOrganizations('org1Msp');
-                transactionId = transaction.getTransactionID().getTransactionID();
-                const id = uuid();
+                const privateStateTransaction = contract.createTransaction('createSimpleAsset');
+                privateStateTransaction.setEndorsingOrganizations('org1Msp');
+                privateStateTransactionId = privateStateTransaction.getTransactionID().getTransactionID();
+                id = uuid();
+
+                compositeKey = ChaincodeStub.prototype.createCompositeKey(objectType, [id]);
         
-                key = ChaincodeStub.prototype.createCompositeKey(objectType, [id]);
-        
-                await transaction.submit(id, '100', 'org1Collection', 'org2Collection');
+                await privateStateTransaction.submit(id, '100', 'org1Collection', 'org2Collection');
+
+                const worldStateTransaction = contract.createTransaction('createKeyValue');
+                worldStateTransactionId = worldStateTransaction.getTransactionID().getTransactionID();
+
+                await worldStateTransaction.submit(id, '100');
             });
         
-            it ('should satisfy expect when transaction reads from key in collection', async () => {
-                const foundTransaction = channel.get(transactionId);
+            it ('should satisfy expect when transaction reads from key in world state', async () => {
+                const foundTransaction = channel.get(worldStateTransactionId);
         
-                await expect(foundTransaction).to.readFromKey(key, 'org1Collection', 'org2Collection');
+                await expect(foundTransaction).to.readFromKey(id);
+            });
+
+            it ('should satisfy expect when transaction reads from key in collection', async () => {
+                const foundTransaction = channel.get(privateStateTransactionId);
+        
+                await expect(foundTransaction).to.readFromKey(compositeKey, 'org1Collection', 'org2Collection');
+            });
+
+            it ('should satisfy expect when transaction only reads from key in world state', async () => {
+                const foundTransaction = channel.get(worldStateTransactionId);
+        
+                await expect(foundTransaction).to.only.readFromKey(id);
             });
         
             it ('should satisfy expect when transaction only reads from key collection', async () => {
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
         
-                await expect(foundTransaction).to.only.readFromKey(key, 'org1Collection', 'org2Collection');
+                await expect(foundTransaction).to.only.readFromKey(compositeKey, 'org1Collection', 'org2Collection');
             });
+
+            it ('should satisfy expect not when transaction does not read from world state', async () => {
+                const foundTransaction = channel.get(privateStateTransactionId);
         
+                await expect(foundTransaction).to.not.readFromKey(compositeKey);
+            });
+
             it ('should satisfy expect not when transaction does not read from collection', async () => {
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
         
-                await expect(foundTransaction).to.not.readFromKey(key, 'org3Collection');
+                await expect(foundTransaction).to.not.readFromKey(compositeKey, 'org3Collection');
             });
         
+            it ('should satisfy expect not when transaction does not read from key in world state', async () => {
+                const foundTransaction = channel.get(worldStateTransactionId);
+        
+                await expect(foundTransaction).to.not.readFromKey('some key');
+            });
+
             it ('should satisfy expect not when transaction does not read from key in collection', async () => {
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
         
                 await expect(foundTransaction).to.not.readFromKey('some key', 'org1Collection');
             });
         
             it ('should assert an error when expect tests transaction to read from collection but it does not', async () => {
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
         
                 try {
-                    await expect(foundTransaction).to.readFromKey(key, 'org3Collection')
+                    await expect(foundTransaction).to.readFromKey(compositeKey, 'org3Collection')
                     chai.assert.fail('readFromKey() should have asserted an error');
                 } catch(err) {
-                    if (!err.message.includes(`Transaction ${transactionId} does not read from collection`)) {
+                    if (!err.message.includes(`Transaction ${privateStateTransactionId} does not read from collection`)) {
                         chai.assert.fail(err);
                     }
                 }
             });
         
             it ('should assert an error when expect tests transaction to read from key in collection but it does not', async () => {
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
         
                 try {
                     await expect(foundTransaction).to.readFromKey('some key', 'org1Collection')
                     chai.assert.fail('readFromKey() should have asserted an error');
                 } catch(err) {
-                    if (!err.message.includes(`Transaction ${transactionId} does not read from key in collection`)) {
+                    if (!err.message.includes(`Transaction ${privateStateTransactionId} does not read from key in collection`)) {
                         chai.assert.fail(err);
                     }
                 }
@@ -566,41 +628,41 @@ describe('Ledger', () => {
             it ('should assert an error when expect tests transaction to only read from collection but it does not', async () => {
                 const transaction = contract.createTransaction('createMultipleSimpleAsset');
                 transaction.setEndorsingOrganizations('org1Msp');
-                transactionId = transaction.getTransactionID().getTransactionID();
+                privateStateTransactionId = transaction.getTransactionID().getTransactionID();
                 const id = uuid();
                 const id2 = uuid();
         
-                key = ChaincodeStub.prototype.createCompositeKey(objectType, [id]);
+                compositeKey = ChaincodeStub.prototype.createCompositeKey(objectType, [id]);
         
                 await transaction.submit(`["${id}", "${id2}"]`, '100', 'org1Collection', 'org2Collection');
         
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
         
                 try {
-                    await expect(foundTransaction).to.only.readFromKey(key, 'org1Collection')
+                    await expect(foundTransaction).to.only.readFromKey(compositeKey, 'org1Collection')
                     chai.assert.fail('readFromKey() should have asserted an error');
                 } catch(err) {
-                    if (!err.message.includes(`Transaction ${transactionId} does not read only from key in collection org1Collection`)) {
+                    if (!err.message.includes(`Transaction ${privateStateTransactionId} does not read only from key in collection org1Collection`)) {
                         chai.assert.fail(err);
                     }
                 }
             });
         
             it ('should assert an error when expect tests transaction to not read from collection but it does', async () => {
-                const foundTransaction = channel.get(transactionId);
+                const foundTransaction = channel.get(privateStateTransactionId);
         
                 try {
-                    await expect(foundTransaction).to.not.readFromKey(key, 'org1Collection')
+                    await expect(foundTransaction).to.not.readFromKey(compositeKey, 'org1Collection')
                     chai.assert.fail('readFromKey() should have asserted an error');
                 } catch(err) {
-                    if (!err.message.includes(`Transaction ${transactionId} does read from key in collection`)) {
+                    if (!err.message.includes(`Transaction ${privateStateTransactionId} does read from key in collection`)) {
                         chai.assert.fail(err);
                     }
                 }
             });
         
             it ('should work when chained with .transaction()', async () => {
-                await expect(channel).to.have.transaction(transactionId).to.readFromKey(key, 'org1Collection');
+                await expect(channel).to.have.transaction(privateStateTransactionId).to.readFromKey(compositeKey, 'org1Collection');
             });
         });
 
@@ -851,6 +913,49 @@ describe('Ledger', () => {
 
             it ('should work when chained with .transaction()', async () => {
                 await expect(channel).to.have.transaction(transactionIdEventEmitter).with.event;
+            });
+        });
+
+        describe('worldState', () => {
+            let worldStateTransactionId: string;
+            let nonWorldStateTransactionId: string;
+
+            beforeEach(async () => {
+                const worldStateTransaction = contract.createTransaction('createKeyValue');
+                worldStateTransactionId = worldStateTransaction.getTransactionID().getTransactionID();
+                
+                await worldStateTransaction.submit(uuid(), '100');
+
+                const nonWorldStateTransaction = contract.createTransaction('createSimpleAsset');
+                nonWorldStateTransaction.setEndorsingOrganizations('org1Msp');
+                nonWorldStateTransactionId = nonWorldStateTransaction.getTransactionID().getTransactionID();
+                const id = uuid();
+        
+                await nonWorldStateTransaction.submit(id, '100', 'org1Collection', 'org2Collection');
+            });
+
+            it ('should satisfy expect when transaction does write to world state', async () => {
+                const foundTransaction = channel.get(worldStateTransactionId);
+
+                await expect(foundTransaction).to.write.to.worldState;
+            });
+
+            it ('should satisfy expect not when transaction does not write to world state', async () => {
+                const foundTransaction = channel.get(nonWorldStateTransactionId);
+
+                await expect(foundTransaction).to.not.write.to.worldState;
+            });
+
+            it ('should satisfy expect when transaction does read from world state', async () => {
+                const foundTransaction = channel.get(worldStateTransactionId);
+
+                await expect(foundTransaction).to.read.worldState;
+            });
+
+            it ('should satisfy expect not when transaction does not read from world state', async () => {
+                const foundTransaction = channel.get(nonWorldStateTransactionId);
+
+                await expect(foundTransaction).to.not.read.worldState;
             });
         });
     });

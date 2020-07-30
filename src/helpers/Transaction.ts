@@ -17,6 +17,11 @@ export interface ITransaction {
     keysReadFrom(collection: string): number;
 }
 
+export interface KeyValue {
+    key: string;
+    value: string;
+}
+
 export interface KeyValueHash {
     keyHash: string;
     valueHash: string;
@@ -33,7 +38,7 @@ export interface PrivateReadSet {
 }
 
 export class Transaction implements ITransaction {
-    private readonly publicWrites: KeyValueHash[];
+    private readonly publicWrites: KeyValue[];
     private readonly publicReads: string[]
 
     private readonly privateWrites: PrivateWriteSet[];
@@ -46,13 +51,16 @@ export class Transaction implements ITransaction {
     public readonly parameters: string[];
     public readonly event: {name: string, data: string};
 
-    public constructor(transactionId: string, channelName: string, chaincodeName: string, functionName: string, parameters: string[], privateWrites: PrivateWriteSet[], privateReads: PrivateReadSet[], event: {name: string, data: string}) {
+    public constructor(transactionId: string, channelName: string, chaincodeName: string, functionName: string, parameters: string[], publicWrites: KeyValue[], publicReads: string[], privateWrites: PrivateWriteSet[], privateReads: PrivateReadSet[], event: {name: string, data: string}) {
         this.transactionId = transactionId;
         this.channelName = channelName;
         this.chaincodeName = chaincodeName;
         this.functionName = functionName;
         this.parameters = parameters;
 
+        
+        this.publicWrites = publicWrites;
+        this.publicReads = publicReads;
         this.privateWrites = privateWrites;
         this.privateReads = privateReads;
 
@@ -72,18 +80,21 @@ export class Transaction implements ITransaction {
         }
     }
 
-    public writesToKey(key: string, collection: string): boolean {
-        const keyHash = crypto.createHash('sha256').update(key).digest('hex');
-
-        if (this.getWrites(collection).find((keyValueHash) => keyValueHash.keyHash === keyHash)) {
-            return true;
+    public writesToKey(key: string, collection?: string): boolean {
+        if (collection) {
+            const keyHash = crypto.createHash('sha256').update(key).digest('hex');
+            return this.getWrites(collection).some((keyValueHash) => keyValueHash.keyHash === keyHash);
         }
 
-        return false;
+        return this.publicWrites.some((keyValue) => keyValue.key === key);
     }
 
-    public keysWrittenTo(collection: string): number {
-        return this.getWrites(collection).length;
+    public keysWrittenTo(collection?: string): number {
+        if (collection) {
+            return this.getWrites(collection).length;
+        }
+
+        return this.publicWrites.length;
     }
 
     public collectionsReadFrom(): number {
@@ -99,18 +110,21 @@ export class Transaction implements ITransaction {
         }
     }
 
-    public readsFromKey(key: string, collection: string): boolean {
-        const passedKeyHash = crypto.createHash('sha256').update(key).digest('hex');
-
-        if (this.getReads(collection).find((keyHash) => passedKeyHash === keyHash)) {
-            return true;
+    public readsFromKey(key: string, collection?: string): boolean {
+        if (collection) {
+            const passedKeyHash = crypto.createHash('sha256').update(key).digest('hex');
+            return this.getReads(collection).some((keyHash) => keyHash === passedKeyHash);
         }
 
-        return false;
+        return this.publicReads.some((readKey) => readKey === key);
     }
 
-    public keysReadFrom(collection: string): number {
-        return this.getReads(collection).length;
+    public keysReadFrom(collection?: string): number {
+        if (collection) {
+            return this.getReads(collection).length;
+        }
+
+        return this.publicReads.length;
     }
 
     private getWrites(collection: string): KeyValueHash[] {

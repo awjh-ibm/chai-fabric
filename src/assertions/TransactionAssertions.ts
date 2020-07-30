@@ -47,16 +47,20 @@ class TransactionAssertionMethods {
     }
 
     public writesToKey(transaction: Transaction, key: string, collectionNames: string[], not: boolean) {
+        if(collectionNames.length === 0) {
+            collectionNames = [null];
+        }
+
         for (const collectionName of collectionNames) {
             if (not) {
                 if (!transaction.writesTo(collectionName)) {
                     return;
                 }
-            } else {
+            } else if (collectionName) {
                 this.writesTo(transaction, [collectionName], false);
             }
 
-            this.chai.assert.equal(!not, transaction.writesToKey(key, collectionName), `Transaction ${transaction.transactionId} does${not ? '' : ' not'} write to key in collection`);
+            this.chai.assert.equal(!not, transaction.writesToKey(key, collectionName), `Transaction ${transaction.transactionId} does${not ? '' : ' not'} write to key in ${collectionName ? collectionName : 'world state'}`);
         }
     }
 
@@ -117,6 +121,18 @@ class TransactionAssertionMethods {
 
         this.chai.assert[assertionMethod](transaction.event, `Transaction ${transaction.transactionId} does${not ? '' : ' not'} emit event`);
     }
+
+    public writeToWorldState(transaction: Transaction, not: boolean) {
+        const assertionMethod: keyof Chai.AssertStatic = not ? 'equal' : 'notEqual';
+
+        this.chai.assert[assertionMethod](transaction.keysWrittenTo(), 0, `Transaction ${transaction.transactionId} does${not ? '' : ' not'} write to world state`)
+    }
+
+    public readFromWorldState(transaction: Transaction, not: boolean) {
+        const assertionMethod: keyof Chai.AssertStatic = not ? 'equal' : 'notEqual';
+
+        this.chai.assert[assertionMethod](transaction.keysReadFrom(), 0, `Transaction ${transaction.transactionId} does${not ? '' : ' not'} read from world state`)
+    }
 }
 
 export const TransactionAssertions = (chai: Chai.ChaiStatic): void => {
@@ -124,6 +140,35 @@ export const TransactionAssertions = (chai: Chai.ChaiStatic): void => {
 
     chai.Assertion.addProperty('only', function () { 
         chai.util.flag(this, 'only', true);
+    });
+
+    chai.Assertion.addProperty('write', function () { 
+        chai.util.flag(this, 'write', true);
+    });
+
+    chai.Assertion.addProperty('read', function () { 
+        chai.util.flag(this, 'read', true);
+    });
+
+    chai.Assertion.addProperty('worldState', function () {
+        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+            try {
+                const transaction = await getObject<Transaction>(this, chai, 'transaction');
+
+                if (chai.util.flag(this, 'write')) {
+                    transactionAssertionMethods.writeToWorldState(transaction, chai.util.flag(this, 'negate'));
+                } else if (chai.util.flag(this, 'read')) {
+                    transactionAssertionMethods.readFromWorldState(transaction, chai.util.flag(this, 'negate'));
+                } else {
+                    throw new Error('Read/write not specified');
+                }
+
+            } catch (err) {
+                reject(err);
+            }
+
+            resolve(this);
+        });
     });
 
     chai.Assertion.addChainableMethod('functionAndParameters', function (functionName: string, parameters: string[]) {      
@@ -271,7 +316,7 @@ export const TransactionAssertions = (chai: Chai.ChaiStatic): void => {
         });
     });
 
-    chai.Assertion.addProperty('event', async function () {
+    chai.Assertion.addProperty('event', function () {
         return new PromiseAssertion(this, async (resolve: any, reject: any) => {
             try {
                 const transaction = await getObject<Transaction>(this, chai, 'transaction');

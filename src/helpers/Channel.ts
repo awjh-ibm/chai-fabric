@@ -1,6 +1,6 @@
 import { Channel as FabricChannel } from 'fabric-client';
 import { Gateway } from 'fabric-network';
-import { ITransaction, Transaction, PrivateWriteSet, PrivateReadSet } from './Transaction';
+import { ITransaction, Transaction, PrivateWriteSet, PrivateReadSet, KeyValueHash, KeyValue } from './Transaction';
 
 interface CollectionRWSet {
     collection_name: string;
@@ -63,8 +63,15 @@ export class Channel {
 
         let privateWrites: PrivateWriteSet[];
         let privateReads: PrivateReadSet[];
+        let publicWrites: KeyValue[];
+        let publicReads: string[];
 
         if (rwSet) {
+            publicWrites = rwSet.rwset.writes.map((write: any) => {
+                return {key: write.key, value: write.value}
+            });
+            publicReads = rwSet.rwset.reads.map((read: any) => read.key);
+
             const privateRwSet = rwSet.collection_hashed_rwset;
 
             privateWrites = privateRwSet.filter((collectionRwSet: any) => collectionRwSet.hashed_rwset.hashed_writes.length > 0)
@@ -84,7 +91,7 @@ export class Channel {
             };
         }
 
-        return new Transaction(transactionId, channelHeader.channel_id, chaincodeName, args[0], args.slice(1), privateWrites, privateReads, events);
+        return new Transaction(transactionId, channelHeader.channel_id, chaincodeName, args[0], args.slice(1), publicWrites, publicReads, privateWrites, privateReads, events);
     }
 
     private formatRwSetToWrite(collectionRwSet: CollectionRWSet): PrivateWriteSet {
