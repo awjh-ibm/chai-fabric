@@ -3,11 +3,14 @@ import { Contract, Gateway } from 'fabric-network';
 import { v4 as uuid } from 'uuid';
 import { Channel, chaiFabricAssertions } from '../..';
 import { setup } from './utils';
+import { ChaincodeStub } from 'fabric-shim';
 
 const expect = chai.expect;
 chai.use(chaiFabricAssertions);
 
 describe('Ledger', () => {
+    const objectType = 'com.example.SimpleAsset';
+
     let gateway: Gateway;
     let contract: Contract;
     let channel: Channel;
@@ -212,6 +215,214 @@ describe('Ledger', () => {
                 await expect(channel).to.have.transaction(transactionId).to.writeTo('org1Collection');
             });
         });
+
+        describe('.writeToKey', async () => {
+            let transactionId: string;
+            let key: string;
+    
+            beforeEach(async () => {
+                const transaction = contract.createTransaction('createSimpleAsset');
+                transaction.setEndorsingOrganizations('org1Msp');
+                transactionId = transaction.getTransactionID().getTransactionID();
+                const id = uuid();
+
+                key = ChaincodeStub.prototype.createCompositeKey(objectType, [id]);
+        
+                await transaction.submit(id, '100', 'org1Collection', 'org2Collection');
+            });
+    
+            it ('should satisfy expect when transaction writes to key in collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                await expect(foundTransaction).to.writeToKey(key, 'org1Collection', 'org2Collection');
+            });
+
+            it ('should satisfy expect when transaction only writes to key collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                await expect(foundTransaction).to.only.writeToKey(key, 'org1Collection', 'org2Collection');
+            });
+    
+            it ('should satisfy expect not when transaction does not write to collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                await expect(foundTransaction).to.not.writeToKey(key, 'org3Collection');
+            });
+
+            it ('should satisfy expect not when transaction does not write to key in collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                await expect(foundTransaction).to.not.writeToKey('some key', 'org1Collection');
+            });
+    
+            it ('should assert an error when expect tests transaction to write to collection but it does not', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                try {
+                    await expect(foundTransaction).to.writeToKey(key, 'org3Collection')
+                    chai.assert.fail('writeToKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not write to collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should assert an error when expect tests transaction to write to key in collection but it does not', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                try {
+                    await expect(foundTransaction).to.writeToKey('some key', 'org1Collection')
+                    chai.assert.fail('writeToKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not write to key in collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should assert an error when expect tests transaction to only write to collection but it does not', async () => {
+                const transaction = contract.createTransaction('createMultipleSimpleAsset');
+                transaction.setEndorsingOrganizations('org1Msp');
+                transactionId = transaction.getTransactionID().getTransactionID();
+                const id = uuid();
+                const id2 = uuid();
+
+                key = ChaincodeStub.prototype.createCompositeKey(objectType, [id]);
+        
+                await transaction.submit(`["${id}", "${id2}"]`, '100', 'org1Collection', 'org2Collection');
+
+                const foundTransaction = channel.get(transactionId);
+    
+                try {
+                    await expect(foundTransaction).to.only.writeToKey(key, 'org1Collection')
+                    chai.assert.fail('writeToKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not write only to key in collection org1Collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+    
+            it ('should assert an error when expect tests transaction to not write to collection but it does', async () => {
+                const foundTransaction = channel.get(transactionId);
+    
+                try {
+                    await expect(foundTransaction).to.not.writeToKey(key, 'org1Collection')
+                    chai.assert.fail('writeToKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does write to key in collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+    
+            it ('should work when chained with .transaction()', async () => {
+                await expect(channel).to.have.transaction(transactionId).to.writeToKey(key, 'org1Collection');
+            });
+        });
+
+        describe('.writeToCompositeKey', async () => {
+            let transactionId: string;
+            let id: string;
+        
+            beforeEach(async () => {
+                const transaction = contract.createTransaction('createSimpleAsset');
+                transaction.setEndorsingOrganizations('org1Msp');
+                transactionId = transaction.getTransactionID().getTransactionID();
+                id = uuid();
+        
+                await transaction.submit(id, '100', 'org1Collection', 'org2Collection');
+            });
+        
+            it ('should satisfy expect when transaction writes to composite key in collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                await expect(foundTransaction).to.writeToCompositeKey(objectType, [id], 'org1Collection', 'org2Collection');
+            });
+        
+            it ('should satisfy expect when transaction only writes to composite key collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                await expect(foundTransaction).to.only.writeToCompositeKey(objectType, [id], 'org1Collection', 'org2Collection');
+            });
+        
+            it ('should satisfy expect not when transaction does not write to collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                await expect(foundTransaction).to.not.writeToCompositeKey(objectType, [id], 'org3Collection');
+            });
+        
+            it ('should satisfy expect not when transaction does not write to composite key in collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                await expect(foundTransaction).to.not.writeToCompositeKey('some', ['key'], 'org1Collection');
+            });
+        
+            it ('should assert an error when expect tests transaction to write to collection but it does not', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                try {
+                    await expect(foundTransaction).to.writeToCompositeKey(objectType, [id], 'org3Collection')
+                    chai.assert.fail('writeToCompositeKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not write to collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        
+            it ('should assert an error when expect tests transaction to write to composite key in collection but it does not', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                try {
+                    await expect(foundTransaction).to.writeToCompositeKey('some key', ['key'], 'org1Collection')
+                    chai.assert.fail('writeToCompositeKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not write to key in collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        
+            it ('should assert an error when expect tests transaction to only write to collection but it does not', async () => {
+                const transaction = contract.createTransaction('createMultipleSimpleAsset');
+                transaction.setEndorsingOrganizations('org1Msp');
+                transactionId = transaction.getTransactionID().getTransactionID();
+                id = uuid();
+                const id2 = uuid();
+        
+                await transaction.submit(`["${id}", "${id2}"]`, '100', 'org1Collection', 'org2Collection');
+        
+                const foundTransaction = channel.get(transactionId);
+        
+                try {
+                    await expect(foundTransaction).to.only.writeToCompositeKey(objectType, [id], 'org1Collection')
+                    chai.assert.fail('writeToCompositeKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not write only to key in collection org1Collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        
+            it ('should assert an error when expect tests transaction to not write to collection but it does', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                try {
+                    await expect(foundTransaction).to.not.writeToCompositeKey(objectType, [id], 'org1Collection')
+                    chai.assert.fail('writeToCompositeKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does write to key in collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        
+            it ('should work when chained with .transaction()', async () => {
+                await expect(channel).to.have.transaction(transactionId).to.writeToCompositeKey(objectType, [id], 'org1Collection');
+            });
+        });
     
         describe('.readFrom', async () => {
             let transactionId: string;
@@ -284,6 +495,214 @@ describe('Ledger', () => {
     
             it ('should work when chained with .transaction()', async () => {
                 await expect(channel).to.have.transaction(transactionId).to.readFrom('org1Collection');
+            });
+        });
+
+        describe('.readFromKey', async () => {
+            let transactionId: string;
+            let key: string;
+        
+            beforeEach(async () => {
+                const transaction = contract.createTransaction('createSimpleAsset');
+                transaction.setEndorsingOrganizations('org1Msp');
+                transactionId = transaction.getTransactionID().getTransactionID();
+                const id = uuid();
+        
+                key = ChaincodeStub.prototype.createCompositeKey(objectType, [id]);
+        
+                await transaction.submit(id, '100', 'org1Collection', 'org2Collection');
+            });
+        
+            it ('should satisfy expect when transaction reads from key in collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                await expect(foundTransaction).to.readFromKey(key, 'org1Collection', 'org2Collection');
+            });
+        
+            it ('should satisfy expect when transaction only reads from key collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                await expect(foundTransaction).to.only.readFromKey(key, 'org1Collection', 'org2Collection');
+            });
+        
+            it ('should satisfy expect not when transaction does not read from collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                await expect(foundTransaction).to.not.readFromKey(key, 'org3Collection');
+            });
+        
+            it ('should satisfy expect not when transaction does not read from key in collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                await expect(foundTransaction).to.not.readFromKey('some key', 'org1Collection');
+            });
+        
+            it ('should assert an error when expect tests transaction to read from collection but it does not', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                try {
+                    await expect(foundTransaction).to.readFromKey(key, 'org3Collection')
+                    chai.assert.fail('readFromKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not read from collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        
+            it ('should assert an error when expect tests transaction to read from key in collection but it does not', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                try {
+                    await expect(foundTransaction).to.readFromKey('some key', 'org1Collection')
+                    chai.assert.fail('readFromKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not read from key in collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        
+            it ('should assert an error when expect tests transaction to only read from collection but it does not', async () => {
+                const transaction = contract.createTransaction('createMultipleSimpleAsset');
+                transaction.setEndorsingOrganizations('org1Msp');
+                transactionId = transaction.getTransactionID().getTransactionID();
+                const id = uuid();
+                const id2 = uuid();
+        
+                key = ChaincodeStub.prototype.createCompositeKey(objectType, [id]);
+        
+                await transaction.submit(`["${id}", "${id2}"]`, '100', 'org1Collection', 'org2Collection');
+        
+                const foundTransaction = channel.get(transactionId);
+        
+                try {
+                    await expect(foundTransaction).to.only.readFromKey(key, 'org1Collection')
+                    chai.assert.fail('readFromKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not read only from key in collection org1Collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        
+            it ('should assert an error when expect tests transaction to not read from collection but it does', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                try {
+                    await expect(foundTransaction).to.not.readFromKey(key, 'org1Collection')
+                    chai.assert.fail('readFromKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does read from key in collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        
+            it ('should work when chained with .transaction()', async () => {
+                await expect(channel).to.have.transaction(transactionId).to.readFromKey(key, 'org1Collection');
+            });
+        });
+
+        describe('.readFromCompositeKey', async () => {
+            let transactionId: string;
+            let id: string;
+        
+            beforeEach(async () => {
+                const transaction = contract.createTransaction('createSimpleAsset');
+                transaction.setEndorsingOrganizations('org1Msp');
+                transactionId = transaction.getTransactionID().getTransactionID();
+                id = uuid();
+        
+                await transaction.submit(id, '100', 'org1Collection', 'org2Collection');
+            });
+        
+            it ('should satisfy expect when transaction reads from composite key in collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                await expect(foundTransaction).to.readFromCompositeKey(objectType, [id], 'org1Collection', 'org2Collection');
+            });
+        
+            it ('should satisfy expect when transaction only reads from composite key collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                await expect(foundTransaction).to.only.readFromCompositeKey(objectType, [id], 'org1Collection', 'org2Collection');
+            });
+        
+            it ('should satisfy expect not when transaction does not read from collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                await expect(foundTransaction).to.not.readFromCompositeKey(objectType, [id], 'org3Collection');
+            });
+        
+            it ('should satisfy expect not when transaction does not read from composite key in collection', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                await expect(foundTransaction).to.not.readFromCompositeKey('some', ['key'], 'org1Collection');
+            });
+        
+            it ('should assert an error when expect tests transaction to read from collection but it does not', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                try {
+                    await expect(foundTransaction).to.readFromCompositeKey(objectType, [id], 'org3Collection')
+                    chai.assert.fail('readFromCompositeKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not read from collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        
+            it ('should assert an error when expect tests transaction to read from composite key in collection but it does not', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                try {
+                    await expect(foundTransaction).to.readFromCompositeKey('some', ['key'], 'org1Collection')
+                    chai.assert.fail('readFromCompositeKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not read from key in collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        
+            it ('should assert an error when expect tests transaction to only read from composite collection but it does not', async () => {
+                const transaction = contract.createTransaction('createMultipleSimpleAsset');
+                transaction.setEndorsingOrganizations('org1Msp');
+                transactionId = transaction.getTransactionID().getTransactionID();
+                id = uuid();
+                const id2 = uuid();
+        
+                await transaction.submit(`["${id}", "${id2}"]`, '100', 'org1Collection', 'org2Collection');
+        
+                const foundTransaction = channel.get(transactionId);
+        
+                try {
+                    await expect(foundTransaction).to.only.readFromCompositeKey(objectType, [id], 'org1Collection')
+                    chai.assert.fail('readFromCompositeKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does not read only from key in collection org1Collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        
+            it ('should assert an error when expect tests transaction to not read from collection but it does', async () => {
+                const foundTransaction = channel.get(transactionId);
+        
+                try {
+                    await expect(foundTransaction).to.not.readFromCompositeKey(objectType, [id], 'org1Collection')
+                    chai.assert.fail('readFromCompositeKey() should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${transactionId} does read from key in collection`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        
+            it ('should work when chained with .transaction()', async () => {
+                await expect(channel).to.have.transaction(transactionId).to.readFromCompositeKey(objectType, [id], 'org1Collection');
             });
         });
 

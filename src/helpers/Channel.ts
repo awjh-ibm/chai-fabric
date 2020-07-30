@@ -1,6 +1,19 @@
 import { Channel as FabricChannel } from 'fabric-client';
 import { Gateway } from 'fabric-network';
-import { ITransaction, Transaction } from './Transaction';
+import { ITransaction, Transaction, PrivateWriteSet, PrivateReadSet } from './Transaction';
+
+interface CollectionRWSet {
+    collection_name: string;
+    hashed_rwset: {
+        hashed_writes: {
+            key_hash: Buffer;
+            value_hash: Buffer;
+        }[];
+        hashed_reads: {
+            key_hash: Buffer;
+        }[];
+    }
+}
 
 export class Channel {
     private readonly gateway: Gateway;
@@ -48,16 +61,16 @@ export class Channel {
             return _rwSet.namespace === chaincodeName;
         });
 
-        let privateWrites: string[];
-        let privateReads: string[];
+        let privateWrites: PrivateWriteSet[];
+        let privateReads: PrivateReadSet[];
 
         if (rwSet) {
             const privateRwSet = rwSet.collection_hashed_rwset;
 
             privateWrites = privateRwSet.filter((collectionRwSet: any) => collectionRwSet.hashed_rwset.hashed_writes.length > 0)
-                                                        .map((collectionRwSet: any) => collectionRwSet.collection_name);
+                                                        .map((collectionRwSet: any) => this.formatRwSetToWrite(collectionRwSet));
             privateReads = privateRwSet.filter((collectionRwSet: any) => collectionRwSet.hashed_rwset.hashed_reads.length > 0)
-                                                       .map((collectionRwSet: any) => collectionRwSet.collection_name);
+                                                       .map((collectionRwSet: any) => this.formatRwSetToRead(collectionRwSet));
         }
 
         const txEvents = extension.events;
@@ -72,5 +85,17 @@ export class Channel {
         }
 
         return new Transaction(transactionId, channelHeader.channel_id, chaincodeName, args[0], args.slice(1), privateWrites, privateReads, events);
+    }
+
+    private formatRwSetToWrite(collectionRwSet: CollectionRWSet): PrivateWriteSet {
+        return {collection: collectionRwSet.collection_name, keyValueHashes: collectionRwSet.hashed_rwset.hashed_writes.map((hashedWrite) => {
+            return {keyHash: hashedWrite.key_hash.toString('hex'), valueHash: hashedWrite.value_hash.toString('hex')};
+        })};
+    }
+
+    private formatRwSetToRead(collectionRwSet: CollectionRWSet): PrivateReadSet {
+        return {collection: collectionRwSet.collection_name, keyHashes: collectionRwSet.hashed_rwset.hashed_reads.map((hashedRead) => {
+            return hashedRead.key_hash.toString('hex');
+        })};
     }
 }

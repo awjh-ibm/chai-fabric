@@ -1,6 +1,7 @@
 import { Transaction } from '../helpers/Transaction';
 import { PromiseAssertion } from './PromiseAssertion';
 import { getObject } from './utils';
+import { ChaincodeStub } from 'fabric-shim';
 
 class TransactionAssertionMethods {
     private chai: Chai.ChaiStatic;
@@ -26,7 +27,7 @@ class TransactionAssertionMethods {
 
         const assertionMethod: keyof Chai.AssertStatic = not ? 'notEqual' : 'equal';
 
-        this.chai.assert[assertionMethod](transaction.numberOfWrites(), collectionNames.length, `Transaction ${transaction.transactionId} does${not ? '' : ' not'} write only to collections`);
+        this.chai.assert[assertionMethod](transaction.collectionsWrittenTo(), collectionNames.length, `Transaction ${transaction.transactionId} does${not ? '' : ' not'} write only to collections`);
     }
 
     public writesTo(transaction: Transaction, collectionNames: string[], not: boolean) {
@@ -35,12 +36,36 @@ class TransactionAssertionMethods {
         }
     }
 
-    public readsFromOnly(transaction: Transaction, collectionNames: string[], not: boolean) {
-        this.writesTo(transaction, collectionNames, not);
+    public writesToKeyOnly(transaction: Transaction, key: string, collectionNames: string[], not: boolean) {
+        this.writesToKey(transaction, key, collectionNames, not);
 
         const assertionMethod: keyof Chai.AssertStatic = not ? 'notEqual' : 'equal';
 
-        this.chai.assert[assertionMethod](transaction.numberOfReads(), collectionNames.length, `Transaction ${transaction.transactionId} does${not ? '' : ' not'} read only from collections`);
+        for (const collectionName of collectionNames) {
+            this.chai.assert[assertionMethod](transaction.keysWrittenTo(collectionName), 1, `Transaction ${transaction.transactionId} does${not ? '' : ' not'} write only to key in collection ${collectionName}`);
+        }
+    }
+
+    public writesToKey(transaction: Transaction, key: string, collectionNames: string[], not: boolean) {
+        for (const collectionName of collectionNames) {
+            if (not) {
+                if (!transaction.writesTo(collectionName)) {
+                    return;
+                }
+            } else {
+                this.writesTo(transaction, [collectionName], false);
+            }
+
+            this.chai.assert.equal(!not, transaction.writesToKey(key, collectionName), `Transaction ${transaction.transactionId} does${not ? '' : ' not'} write to key in collection`);
+        }
+    }
+
+    public readsFromOnly(transaction: Transaction, collectionNames: string[], not: boolean) {
+        this.readsFrom(transaction, collectionNames, not);
+
+        const assertionMethod: keyof Chai.AssertStatic = not ? 'notEqual' : 'equal';
+
+        this.chai.assert[assertionMethod](transaction.collectionsReadFrom(), collectionNames.length, `Transaction ${transaction.transactionId} does${not ? '' : ' not'} read only from collections`);
     }
 
     public readsFrom(transaction: Transaction, collectionNames: string[], not: boolean) {
@@ -48,6 +73,31 @@ class TransactionAssertionMethods {
             this.chai.assert.equal(!not, transaction.readsFrom(collectionName), `Transaction ${transaction.transactionId} does${not ? '' : ' not'} read from collection`);
         }
     }
+
+    public readsFromKeyOnly(transaction: Transaction, key: string, collectionNames: string[], not: boolean) {
+        this.readsFromKey(transaction, key, collectionNames, not);
+
+        const assertionMethod: keyof Chai.AssertStatic = not ? 'notEqual' : 'equal';
+
+        for (const collectionName of collectionNames) {
+            this.chai.assert[assertionMethod](transaction.keysReadFrom(collectionName), 1, `Transaction ${transaction.transactionId} does${not ? '' : ' not'} read only from key in collection ${collectionName}`);
+        }
+    }
+
+    public readsFromKey(transaction: Transaction, key: string, collectionNames: string[], not: boolean) {
+        for (const collectionName of collectionNames) {
+            if (not) {
+                if (!transaction.readsFrom(collectionName)) {
+                    return;
+                }
+            } else {
+                this.readsFrom(transaction, [collectionName], false);
+            }
+
+            this.chai.assert.equal(!not, transaction.readsFromKey(key, collectionName), `Transaction ${transaction.transactionId} does${not ? '' : ' not'} read from key in collection`);
+        }
+    }
+
 
     public emits(transaction: Transaction, name: string, data: string, not: boolean) {
         this.emitsAnything(transaction, not);
@@ -110,6 +160,46 @@ export const TransactionAssertions = (chai: Chai.ChaiStatic): void => {
         });
     });
 
+    chai.Assertion.addChainableMethod('writeToKey', async function (key: string, ...collectionNames: string[]) {
+        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+            try {
+                const transaction = await getObject<Transaction>(this, chai, 'transaction');
+
+                if (chai.util.flag(this, 'only')) {
+                    transactionAssertionMethods.writesToKeyOnly(transaction, key, collectionNames, chai.util.flag(this, 'negate'));
+                } else {
+                    transactionAssertionMethods.writesToKey(transaction, key, collectionNames, chai.util.flag(this, 'negate'));
+                }
+
+            } catch(err) {
+                reject(err);
+            }
+
+            resolve(this);
+        });
+    });
+
+    chai.Assertion.addChainableMethod('writeToCompositeKey', async function (objectType: string, attributes: string[], ...collectionNames: string[]) {
+        const key = ChaincodeStub.prototype.createCompositeKey(objectType, attributes);
+
+        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+            try {
+                const transaction = await getObject<Transaction>(this, chai, 'transaction');
+
+                if (chai.util.flag(this, 'only')) {
+                    transactionAssertionMethods.writesToKeyOnly(transaction, key, collectionNames, chai.util.flag(this, 'negate'));
+                } else {
+                    transactionAssertionMethods.writesToKey(transaction, key, collectionNames, chai.util.flag(this, 'negate'));
+                }
+
+            } catch(err) {
+                reject(err);
+            }
+
+            resolve(this);
+        });
+    });
+
     chai.Assertion.addChainableMethod('readFrom', async function (...collectionNames: string[]) {
         return new PromiseAssertion(this, async (resolve: any, reject: any) => {
             try {
@@ -120,6 +210,46 @@ export const TransactionAssertions = (chai: Chai.ChaiStatic): void => {
                 } else {
                     transactionAssertionMethods.readsFrom(transaction, collectionNames, chai.util.flag(this, 'negate'));
                 }
+            } catch(err) {
+                reject(err);
+            }
+
+            resolve(this);
+        });
+    });
+
+    chai.Assertion.addChainableMethod('readFromKey', async function (key: string, ...collectionNames: string[]) {
+        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+            try {
+                const transaction = await getObject<Transaction>(this, chai, 'transaction');
+
+                if (chai.util.flag(this, 'only')) {
+                    transactionAssertionMethods.readsFromKeyOnly(transaction, key, collectionNames, chai.util.flag(this, 'negate'));
+                } else {
+                    transactionAssertionMethods.readsFromKey(transaction, key, collectionNames, chai.util.flag(this, 'negate'));
+                }
+
+            } catch(err) {
+                reject(err);
+            }
+
+            resolve(this);
+        });
+    });
+
+    chai.Assertion.addChainableMethod('readFromCompositeKey', async function (objectType: string, attributes: string[], ...collectionNames: string[]) {
+        const key = ChaincodeStub.prototype.createCompositeKey(objectType, attributes);
+
+        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+            try {
+                const transaction = await getObject<Transaction>(this, chai, 'transaction');
+
+                if (chai.util.flag(this, 'only')) {
+                    transactionAssertionMethods.readsFromKeyOnly(transaction, key, collectionNames, chai.util.flag(this, 'negate'));
+                } else {
+                    transactionAssertionMethods.readsFromKey(transaction, key, collectionNames, chai.util.flag(this, 'negate'));
+                }
+
             } catch(err) {
                 reject(err);
             }

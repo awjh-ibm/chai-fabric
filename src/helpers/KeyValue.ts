@@ -15,7 +15,7 @@ export class KeyValue implements IKeyValue {
         return this._key;
     }
 
-    public value(): any {
-        return this._value;
+    public value(stringify: boolean = false): any {
+        return stringify ? JSON.stringify(this._value) : this._value;
     }
 }

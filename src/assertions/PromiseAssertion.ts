@@ -37,7 +37,11 @@ export interface ChainMethods {
     event: PromiseAssertion;
     functionAndParameters(functionName: string, parameters: string[]): PromiseAssertion;
     writeTo(...collectionName: string[]): PromiseAssertion;
+    writeToKey(key: string, ...collectionName: string[]): PromiseAssertion;
+    writeToCompositeKey(objectType: string, attributes: string[], ...collectionName: string[]): PromiseAssertion;
     readFrom(...collectionName: string[]): PromiseAssertion;
+    readFromKey(key: string, ...collectionName: string[]): PromiseAssertion;
+    readFromCompositeKey(objectType: string, attributes: string[], ...collectionName: string[]): PromiseAssertion;
     emit(name: string, data: string): PromiseAssertion;
 }
 
