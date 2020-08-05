@@ -1,6 +1,6 @@
 {
   "name": "chai-fabric",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "Chai assertions for IBM Blockchain Platform",
   "main": "dist/index.js",
   "typings": "dist/index.d.ts",
@@ -17,6 +17,7 @@
     "@types/chai": "4.2.4",
     "@types/mocha": "2.2.44",
     "@types/uuid": "3.4.3",
+    "fabric-common": "^1.4.11",
     "fs-extra": "8.1.0",
     "mocha": "3.4.2",
     "ts-node": "4.0.2",
@@ -25,7 +26,6 @@
   },
   "dependencies": {
     "chai": "4.2.0",
-    "fabric-client": "1.4.11",
     "fabric-network": "1.4.11",
     "fabric-shim": "1.4.5",
     "nano": "8.2.2"

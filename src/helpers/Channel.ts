@@ -1,6 +1,6 @@
 import { Channel as FabricChannel } from 'fabric-client';
 import { Gateway } from 'fabric-network';
-import { ITransaction, Transaction, PrivateWriteSet, PrivateReadSet, KeyValueHash, KeyValue } from './Transaction';
+import { ITransaction, Transaction, PrivateWriteSet, PrivateReadSet, Response, KeyValue } from './Transaction';
 
 interface CollectionRWSet {
     collection_name: string;
@@ -91,7 +91,13 @@ export class Channel {
             };
         }
 
-        return new Transaction(transactionId, channelHeader.channel_id, chaincodeName, args[0], args.slice(1), publicWrites, publicReads, privateWrites, privateReads, events);
+        let response: Response = {
+            status: extension.response.status,
+            message: extension.response.message,
+            payload: extension.response.payload.toString()
+        }
+
+        return new Transaction(transactionId, channelHeader.channel_id, chaincodeName, args[0], args.slice(1), publicWrites, publicReads, privateWrites, privateReads, events, response);
     }
 
     private formatRwSetToWrite(collectionRwSet: CollectionRWSet): PrivateWriteSet {

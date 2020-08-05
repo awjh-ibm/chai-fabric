@@ -29,12 +29,18 @@ export interface KeyValueHash {
 
 export interface PrivateWriteSet {
     collection: string;
-    keyValueHashes: KeyValueHash[]
+    keyValueHashes: KeyValueHash[];
 }
 
 export interface PrivateReadSet {
     collection: string;
-    keyHashes: string[]
+    keyHashes: string[];
+}
+
+export interface Response {
+    status: number;
+    message: string;
+    payload: string;
 }
 
 export class Transaction implements ITransaction {
@@ -50,8 +56,9 @@ export class Transaction implements ITransaction {
     public readonly functionName: string;
     public readonly parameters: string[];
     public readonly event: {name: string, data: string};
+    public readonly response: Response;
 
-    public constructor(transactionId: string, channelName: string, chaincodeName: string, functionName: string, parameters: string[], publicWrites: KeyValue[], publicReads: string[], privateWrites: PrivateWriteSet[], privateReads: PrivateReadSet[], event: {name: string, data: string}) {
+    public constructor(transactionId: string, channelName: string, chaincodeName: string, functionName: string, parameters: string[], publicWrites: KeyValue[], publicReads: string[], privateWrites: PrivateWriteSet[], privateReads: PrivateReadSet[], event: {name: string, data: string}, response: Response) {
         this.transactionId = transactionId;
         this.channelName = channelName;
         this.chaincodeName = chaincodeName;
@@ -63,6 +70,8 @@ export class Transaction implements ITransaction {
         this.publicReads = publicReads;
         this.privateWrites = privateWrites;
         this.privateReads = privateReads;
+
+        this.response = response;
 
         this.event = event;
     }
@@ -127,23 +136,47 @@ export class Transaction implements ITransaction {
         return this.publicReads.length;
     }
 
+    public isSuccessful(): boolean {
+        return this.response.status === 200;
+    }
+
+    public getStatus(): number {
+        return this.response.status;
+    }
+
+    public getMessage(): string {
+        if (this.isSuccessful()) {
+            throw new Error('Can only get message of unsuccessful transaction');
+        }
+
+        return this.response.message;
+    }
+
+    public getPayload(): string {
+        if (!this.isSuccessful()) {
+            throw new Error('Can only get payload of successful transaction');
+        }
+
+        return this.response.payload;
+    }
+
     private getWrites(collection: string): KeyValueHash[] {
-        const found = this.privateWrites.find((privateWrite) => privateWrite.collection === collection).keyValueHashes;
+        const found = this.privateWrites.find((privateWrite) => privateWrite.collection === collection);
 
         if (!found) {
             throw new Error('Collection not written to');
         }
 
-        return found;
+        return found.keyValueHashes;;
     }
 
     private getReads(collection: string): string[] {
-        const found = this.privateReads.find((privateRead) => privateRead.collection === collection).keyHashes;
+        const found = this.privateReads.find((privateRead) => privateRead.collection === collection);
 
         if (!found) {
             throw new Error('Collection not read from');
         }
 
-        return found;
+        return found.keyHashes;
     }
 }

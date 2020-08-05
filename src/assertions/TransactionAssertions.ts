@@ -133,6 +133,34 @@ class TransactionAssertionMethods {
 
         this.chai.assert[assertionMethod](transaction.keysReadFrom(), 0, `Transaction ${transaction.transactionId} does${not ? '' : ' not'} read from world state`)
     }
+
+    public isSuccessful(transaction: Transaction, not: boolean) {
+        this.chai.assert.equal(!not, transaction.isSuccessful(), `Transaction ${transaction.transactionId} is${not ? '' : ' not'} successful`)
+    }
+
+    public hasPayload(transaction: Transaction, not: boolean) {
+        const assertionMethod: keyof Chai.AssertStatic = not ? 'notEqual' : 'equal';
+
+        this.chai.assert[assertionMethod](transaction.getPayload(), '', `Transaction ${transaction.transactionId} does${not ? ' not' :  ''} have response payload`);
+    }
+
+    public hasMessage(transaction: Transaction, not: boolean) {
+        const assertionMethod: keyof Chai.AssertStatic = not ? 'notEqual' : 'equal';
+
+        this.chai.assert[assertionMethod](transaction.getMessage(), '', `Transaction ${transaction.transactionId} does${not ? ' not' :  ''} have response message`);
+    }
+
+    public hasGivenPayload(transaction: Transaction, payload: string, not: boolean) {
+        const assertionMethod: keyof Chai.AssertStatic = not ? 'notEqual' : 'equal';
+
+        this.chai.assert[assertionMethod](transaction.getPayload(), payload, `Transaction ${transaction.transactionId} does${not ? '' : ' not'} have given response payload`)
+    }
+
+    public hasGivenMessage(transaction: Transaction, message: string, not: boolean) {
+        const assertionMethod: keyof Chai.AssertStatic = not ? 'notEqual' : 'equal';
+
+        this.chai.assert[assertionMethod](transaction.getMessage(), message, `Transaction ${transaction.transactionId} does${not ? '' : ' not'} have given response message`)
+    }
 }
 
 export const TransactionAssertions = (chai: Chai.ChaiStatic): void => {
@@ -171,6 +199,77 @@ export const TransactionAssertions = (chai: Chai.ChaiStatic): void => {
         });
     });
 
+    chai.Assertion.addProperty('successful', function () {
+        chai.util.flag(this, 'successful', !chai.util.flag(this, 'negate'));
+
+        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+            try {
+                const transaction = await getObject<Transaction>(this, chai, 'transaction');
+                transactionAssertionMethods.isSuccessful(transaction, chai.util.flag(this, 'negate'));
+            } catch (err) {
+                reject(err);
+            }
+
+            resolve(this);
+        });
+    });
+
+    chai.Assertion.addProperty('unsuccessful', function () {
+        chai.util.flag(this, 'successful', !(!chai.util.flag(this, 'negate')));
+
+        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+            try {
+                const transaction = await getObject<Transaction>(this, chai, 'transaction');
+                transactionAssertionMethods.isSuccessful(transaction, !chai.util.flag(this, 'negate'));
+            } catch (err) {
+                reject(err);
+            }
+
+            resolve(this);
+        });
+    });
+
+    chai.Assertion.addProperty('payload', function () {
+        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+            try {
+                const transaction = await getObject<Transaction>(this, chai, 'transaction');
+                transactionAssertionMethods.hasPayload(transaction, !chai.util.flag(this, 'negate'));
+            } catch (err) {
+                reject(err);
+            }
+
+            resolve(this);
+        });
+    });
+
+    chai.Assertion.addProperty('message', function () {
+        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+            try {
+                const transaction = await getObject<Transaction>(this, chai, 'transaction');
+                transactionAssertionMethods.hasMessage(transaction, !chai.util.flag(this, 'negate'));
+            } catch (err) {
+                reject(err);
+            }
+
+            resolve(this);
+        });
+    });
+
+    chai.Assertion.addProperty('unsuccessful', function () {
+        chai.util.flag(this, 'successful', !(!chai.util.flag(this, 'negate')));
+
+        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+            try {
+                const transaction = await getObject<Transaction>(this, chai, 'transaction');
+                transactionAssertionMethods.isSuccessful(transaction, !chai.util.flag(this, 'negate'));
+            } catch (err) {
+                reject(err);
+            }
+
+            resolve(this);
+        });
+    });
+
     chai.Assertion.addChainableMethod('functionAndParameters', function (functionName: string, parameters: string[]) {      
         return new PromiseAssertion(this, async (resolve: any, reject: any) => {
             try {
@@ -178,6 +277,34 @@ export const TransactionAssertions = (chai: Chai.ChaiStatic): void => {
 
                 transactionAssertionMethods.hasFunction(transaction, functionName, chai.util.flag(this, 'negate'));                
                 transactionAssertionMethods.hasParameters(transaction, parameters, chai.util.flag(this, 'negate'));
+            } catch (err) {
+                reject(err);
+            }
+
+            resolve(this);
+        });
+    });
+
+    chai.Assertion.addChainableMethod('exactPayload', function (payloadValue: string) {      
+        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+            try {
+                const transaction = await getObject<Transaction>(this, chai, 'transaction');
+
+                transactionAssertionMethods.hasGivenPayload(transaction, payloadValue, chai.util.flag(this, 'negate'));                
+            } catch (err) {
+                reject(err);
+            }
+
+            resolve(this);
+        });
+    });
+
+    chai.Assertion.addChainableMethod('exactMessage', function (messageValue: string) {      
+        return new PromiseAssertion(this, async (resolve: any, reject: any) => {
+            try {
+                const transaction = await getObject<Transaction>(this, chai, 'transaction');
+
+                transactionAssertionMethods.hasGivenMessage(transaction, messageValue, chai.util.flag(this, 'negate'));                
             } catch (err) {
                 reject(err);
             }

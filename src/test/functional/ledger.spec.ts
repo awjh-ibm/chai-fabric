@@ -958,5 +958,365 @@ describe('Ledger', () => {
                 await expect(foundTransaction).to.not.read.worldState;
             });
         });
+
+        describe('.successful', () => {
+            let returnValueTransactionId: string;
+            let failTransactionId: string;
+
+            beforeEach(async () => {
+                const returnValueTransaction = contract.createTransaction('returnSomething');
+                returnValueTransactionId = returnValueTransaction.getTransactionID().getTransactionID();
+                
+                await returnValueTransaction.submit('100');
+
+                const failTransaction = contract.createTransaction('fail');
+                failTransactionId = failTransaction.getTransactionID().getTransactionID();
+                
+                // await failTransaction.submit('some error'); TODO HANDLE FAIL COMMIT TXN
+            });
+
+            it ('should satisfy expect when transaction is successful', async () => {
+                const foundTransaction = channel.get(returnValueTransactionId);
+
+                await expect(foundTransaction).to.be.successful;
+            });
+
+            it.skip ('should satisfy expect not when transaction is not successful', async () => {
+                const foundTransaction = channel.get(failTransactionId);
+
+                await expect(foundTransaction).to.not.be.successful;
+            });
+
+            it.skip ('should assert an error when expect tests transaction to be successful but it is not', async () => {
+                const foundTransaction = channel.get(failTransactionId);
+    
+                try {
+                    await expect(foundTransaction).to.be.successful;
+                    chai.assert.fail('successful should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${failTransactionId} is not successful`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should assert an error when expect tests transaction to not be successful but it is', async () => {
+                const foundTransaction = channel.get(returnValueTransactionId);
+    
+                try {
+                    await expect(foundTransaction).to.not.be.successful;
+                    chai.assert.fail('successful should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${returnValueTransactionId} is successful`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        });
+
+        // describe('.unsuccessful', () => {
+        //     let returnValueTransactionId: string;
+        //     let failTransactionId: string;
+
+        //     beforeEach(async () => {
+        //         const returnValueTransaction = contract.createTransaction('returnSomething');
+        //         returnValueTransactionId = returnValueTransaction.getTransactionID().getTransactionID();
+                
+        //         await returnValueTransaction.submit('100');
+
+        //         const failTransaction = contract.createTransaction('fail');
+        //         failTransactionId = failTransaction.getTransactionID().getTransactionID();
+                
+        //         await failTransaction.submit('some error'); // TODO HANDLE SUBMIT FAIL TXNS
+        //     });
+
+        //     it ('should satisfy expect when transaction is unsuccessful', async () => {
+        //         const foundTransaction = channel.get(failTransactionId);
+
+        //         await expect(foundTransaction).to.be.unsuccessful;
+        //     });
+
+        //     it ('should satisfy expect not when transaction is not unsuccessful', async () => {
+        //         const foundTransaction = channel.get(returnValueTransactionId);
+
+        //         await expect(foundTransaction).to.not.be.unsuccessful;
+        //     });
+
+        //     it ('should assert an error when expect tests transaction to be unsuccessful but it is not', async () => {
+        //         const foundTransaction = channel.get(returnValueTransactionId);
+    
+        //         try {
+        //             await expect(foundTransaction).to.be.unsuccessful;
+        //             chai.assert.fail('unsuccessful should have asserted an error');
+        //         } catch(err) {
+        //             if (!err.message.includes(`Transaction ${returnValueTransactionId} is successful`)) {
+        //                 chai.assert.fail(err);
+        //             }
+        //         }
+        //     });
+
+        //     it ('should assert an error when expect tests transaction to not be unsuccessful but it is', async () => {
+        //         const foundTransaction = channel.get(failTransactionId);
+    
+        //         try {
+        //             await expect(foundTransaction).to.not.be.unsuccessful;
+        //             chai.assert.fail('unsuccessful should have asserted an error');
+        //         } catch(err) {
+        //             if (!err.message.includes(`Transaction ${failTransactionId} is not successful`)) {
+        //                 chai.assert.fail(err);
+        //             }
+        //         }
+        //     });
+        // });
+
+        describe('.payload', () => {
+            let returnValueTransactionId: string;
+            let notReturnValueTransactionId: string;
+
+            beforeEach(async () => {
+                const returnValueTransaction = contract.createTransaction('returnSomething');
+                returnValueTransactionId = returnValueTransaction.getTransactionID().getTransactionID();
+
+                await returnValueTransaction.submit(uuid());
+
+                const notReturnValueTransaction = contract.createTransaction('createKeyValue');
+                notReturnValueTransactionId = notReturnValueTransaction.getTransactionID().getTransactionID();
+                
+                await notReturnValueTransaction.submit(uuid(), '100');
+            });
+
+            it ('should satisfy expect when transaction has payload', async () => {
+                const foundTransaction = channel.get(returnValueTransactionId);
+
+                await expect(foundTransaction).to.have.payload;
+            });
+
+            it ('should satisfy expect not when transaction does not have payload', async () => {
+                const foundTransaction = channel.get(notReturnValueTransactionId);
+
+                await expect(foundTransaction).to.not.have.payload;
+            });
+
+            it ('should assert an error when expect tests transaction to have payload but it does not', async () => {
+                const foundTransaction = channel.get(notReturnValueTransactionId);
+
+                try {
+                    await expect(foundTransaction).to.have.payload;
+                    chai.assert.fail('payload should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${notReturnValueTransactionId} does not have response payload`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should assert an error when expect tests transaction to not have payload but it does', async () => {
+                const foundTransaction = channel.get(returnValueTransactionId);
+
+                try {
+                    await expect(foundTransaction).to.not.have.payload;
+                    chai.assert.fail('payload should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${returnValueTransactionId} does have response payload`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        });
+
+        // describe.skip('.message', () => {
+        //     let messageTransactionId: string;
+        //     let notMessageTransactionId: string;
+
+        //     beforeEach(async () => {
+        //         const messageTransaction = contract.createTransaction('fail');
+        //         messageTransactionId = messageTransaction.getTransactionID().getTransactionID();
+
+        //         await messageTransaction.submit(uuid()); // TODO ALLOW SUBMIT OF FAILING TXNS
+
+        //         const notMessageTransaction = contract.createTransaction('createKeyValue');
+        //         notMessageTransactionId = notMessageTransaction.getTransactionID().getTransactionID();
+                
+        //         await notMessageTransaction.submit(uuid(), '100');
+        //     });
+
+        //     it ('should satisfy expect when transaction has message', async () => {
+        //         const foundTransaction = channel.get(messageTransactionId);
+
+        //         await expect(foundTransaction).to.have.message;
+        //     });
+
+        //     it ('should satisfy expect not when transaction does not have message', async () => {
+        //         const foundTransaction = channel.get(notMessageTransactionId);
+
+        //         await expect(foundTransaction).to.not.have.message;
+        //     });
+
+        //     it ('should assert an error when expect tests transaction to have message but it does not', async () => {
+        //         const foundTransaction = channel.get(notMessageTransactionId);
+
+        //         try {
+        //             await expect(foundTransaction).to.have.message;
+        //             chai.assert.fail('message should have asserted an error');
+        //         } catch(err) {
+        //             if (!err.message.includes(`Transaction ${notMessageTransactionId} does not have response message`)) {
+        //                 chai.assert.fail(err);
+        //             }
+        //         }
+        //     });
+
+        //     it ('should assert an error when expect tests transaction to not have message but it does', async () => {
+        //         const foundTransaction = channel.get(messageTransactionId);
+
+        //         try {
+        //             await expect(foundTransaction).to.not.have.message;
+        //             chai.assert.fail('message should have asserted an error');
+        //         } catch(err) {
+        //             if (!err.message.includes(`Transaction ${messageTransactionId} does have response message`)) {
+        //                 chai.assert.fail(err);
+        //             }
+        //         }
+        //     });
+        // });
+
+        describe('.exactPayload', () => {
+            let returnValueTransactionId: string;
+            let notReturnValueTransactionId: string;
+            let value: string;
+
+            beforeEach(async () => {
+                const returnValueTransaction = contract.createTransaction('returnSomething');
+                returnValueTransactionId = returnValueTransaction.getTransactionID().getTransactionID();
+                value = uuid();
+
+                await returnValueTransaction.submit(value);
+
+                const notReturnValueTransaction = contract.createTransaction('createKeyValue');
+                notReturnValueTransactionId = notReturnValueTransaction.getTransactionID().getTransactionID();
+                
+                await notReturnValueTransaction.submit(uuid(), '100');
+            });
+
+            it ('should satisfy expect when transaction has given payload', async () => {
+                const foundTransaction = channel.get(returnValueTransactionId);
+
+                await expect(foundTransaction).to.have.exactPayload(value);
+            });
+
+            it ('should satisfy expect not when transaction does not have given payload', async () => {
+                const foundTransaction = channel.get(returnValueTransactionId);
+
+                await expect(foundTransaction).to.not.have.exactPayload('bad payload');
+            });
+
+            it ('should assert an error when expect tests transaction to have given payload but it does not have a payload', async () => {
+                const foundTransaction = channel.get(notReturnValueTransactionId);
+
+                try {
+                    await expect(foundTransaction).to.have.exactPayload(value);
+                    chai.assert.fail('exactPayload should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${notReturnValueTransactionId} does not have given response payload`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should assert an error when expect tests transaction to have given payload but it does not', async () => {
+                const foundTransaction = channel.get(returnValueTransactionId);
+
+                try {
+                    await expect(foundTransaction).to.have.exactPayload('bad payload');
+                    chai.assert.fail('exactPayload should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${returnValueTransactionId} does not have given response payload`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+
+            it ('should assert an error when expect tests transaction to not have payload but it does', async () => {
+                const foundTransaction = channel.get(returnValueTransactionId);
+
+                try {
+                    await expect(foundTransaction).to.not.have.exactPayload(value);
+                    chai.assert.fail('exactPayload should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${returnValueTransactionId} does have given response payload`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        });
+
+        // describe.skip('.exactMessage', () => {
+        //     let messageTransactionId: string;
+        //     let nonMessageTransactionId: string;
+        //     let errorMessage: string;
+
+        //     beforeEach(async () => {
+        //         const messageTransaction = contract.createTransaction('fail');
+        //         messageTransactionId = messageTransaction.getTransactionID().getTransactionID();
+        //         errorMessage = 'some error ' + uuid();
+
+        //         await messageTransaction.submit(errorMessage); // TODO MAKE IT SO CAN SUBMIT FAILING TXNS
+
+        //         const nonMessageTransaction = contract.createTransaction('createKeyValue');
+        //         nonMessageTransactionId = nonMessageTransaction.getTransactionID().getTransactionID();
+                
+        //         await nonMessageTransaction.submit(uuid(), '100');
+        //     });
+
+        //     it ('should satisfy expect when transaction has given message', async () => {
+        //         const foundTransaction = channel.get(messageTransactionId);
+
+        //         await expect(foundTransaction).to.have.exactMessage(errorMessage);
+        //     });
+
+        //     it ('should satisfy expect not when transaction does not have given message', async () => {
+        //         const foundTransaction = channel.get(messageTransactionId);
+
+        //         await expect(foundTransaction).to.not.have.exactMessage('bad message');
+        //     });
+
+        //     it ('should assert an error when expect tests transaction to have given message but it does not have a message', async () => {
+        //         const foundTransaction = channel.get(nonMessageTransactionId);
+
+        //         try {
+        //             await expect(foundTransaction).to.have.exactMessage(errorMessage);
+        //             chai.assert.fail('exactMessage should have asserted an error');
+        //         } catch(err) {
+        //             if (!err.message.includes(`Transaction ${nonMessageTransactionId} does not have given response message`)) {
+        //                 chai.assert.fail(err);
+        //             }
+        //         }
+        //     });
+
+        //     it ('should assert an error when expect tests transaction to have given message but it does not', async () => {
+        //         const foundTransaction = channel.get(messageTransactionId);
+
+        //         try {
+        //             await expect(foundTransaction).to.have.exactMessage('bad message');
+        //             chai.assert.fail('exactMessage should have asserted an error');
+        //         } catch(err) {
+        //             if (!err.message.includes(`Transaction ${messageTransactionId} does not have given response message`)) {
+        //                 chai.assert.fail(err);
+        //             }
+        //         }
+        //     });
+
+        //     it ('should assert an error when expect tests transaction to not have message but it does', async () => {
+        //         const foundTransaction = channel.get(messageTransactionId);
+
+        //         try {
+        //             await expect(foundTransaction).to.not.have.exactMessage(errorMessage);
+        //             chai.assert.fail('exactMessage should have asserted an error');
+        //         } catch(err) {
+        //             if (!err.message.includes(`Transaction ${messageTransactionId} does have given response message`)) {
+        //                 chai.assert.fail(err);
+        //             }
+        //         }
+        //     });
+        // });
     });
 });

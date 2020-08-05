@@ -38,6 +38,10 @@ export interface ChainMethods {
     write: Chai.Assertion;
     read: Chai.Assertion;
     worldState: PromiseAssertion;
+    successful: PromiseAssertion;
+    unsuccessful: PromiseAssertion;
+    payload: PromiseAssertion;
+    // message: PromiseAssertion;
     functionAndParameters(functionName: string, parameters: string[]): PromiseAssertion;
     writeTo(...collectionName: string[]): PromiseAssertion;
     writeToKey(key: string, ...collectionName: string[]): PromiseAssertion;
@@ -46,6 +50,8 @@ export interface ChainMethods {
     readFromKey(key: string, ...collectionName: string[]): PromiseAssertion;
     readFromCompositeKey(objectType: string, attributes: string[], ...collectionName: string[]): PromiseAssertion;
     emit(name: string, data: string): PromiseAssertion;
+    exactPayload(payloadValue: string): PromiseAssertion;
+    // exactMessage(messageValue: string): PromiseAssertion;
 }
 
 export class PromiseAssertion extends Promise<Chai.Assertion> implements LanguageChains {
