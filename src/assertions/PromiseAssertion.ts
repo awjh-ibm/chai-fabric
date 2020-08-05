@@ -39,9 +39,9 @@ export interface ChainMethods {
     read: Chai.Assertion;
     worldState: PromiseAssertion;
     successful: PromiseAssertion;
-    unsuccessful: PromiseAssertion;
+    // unsuccessful: PromiseAssertion;
     payload: PromiseAssertion;
-    // message: PromiseAssertion;
+    message: PromiseAssertion;
     functionAndParameters(functionName: string, parameters: string[]): PromiseAssertion;
     writeTo(...collectionName: string[]): PromiseAssertion;
     writeToKey(key: string, ...collectionName: string[]): PromiseAssertion;

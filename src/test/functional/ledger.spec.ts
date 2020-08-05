@@ -1124,60 +1124,60 @@ describe('Ledger', () => {
             });
         });
 
-        // describe.skip('.message', () => {
-        //     let messageTransactionId: string;
-        //     let notMessageTransactionId: string;
+        describe('.message', () => {
+            let messageTransactionId: string;
+            let notMessageTransactionId: string;
 
-        //     beforeEach(async () => {
-        //         const messageTransaction = contract.createTransaction('fail');
-        //         messageTransactionId = messageTransaction.getTransactionID().getTransactionID();
+            beforeEach(async () => {
+                const messageTransaction = contract.createTransaction('fail');
+                messageTransactionId = messageTransaction.getTransactionID().getTransactionID();
 
-        //         await messageTransaction.submit(uuid()); // TODO ALLOW SUBMIT OF FAILING TXNS
+                // await messageTransaction.submit(uuid()); TODO ALLOW SUBMIT OF FAILING TXNS
 
-        //         const notMessageTransaction = contract.createTransaction('createKeyValue');
-        //         notMessageTransactionId = notMessageTransaction.getTransactionID().getTransactionID();
+                const notMessageTransaction = contract.createTransaction('createKeyValue');
+                notMessageTransactionId = notMessageTransaction.getTransactionID().getTransactionID();
                 
-        //         await notMessageTransaction.submit(uuid(), '100');
-        //     });
+                await notMessageTransaction.submit(uuid(), '100');
+            });
 
-        //     it ('should satisfy expect when transaction has message', async () => {
-        //         const foundTransaction = channel.get(messageTransactionId);
+            it.skip ('should satisfy expect when transaction has message', async () => {
+                const foundTransaction = channel.get(messageTransactionId);
 
-        //         await expect(foundTransaction).to.have.message;
-        //     });
+                await expect(foundTransaction).to.have.message;
+            });
 
-        //     it ('should satisfy expect not when transaction does not have message', async () => {
-        //         const foundTransaction = channel.get(notMessageTransactionId);
+            it ('should satisfy expect not when transaction does not have message', async () => {
+                const foundTransaction = channel.get(notMessageTransactionId);
 
-        //         await expect(foundTransaction).to.not.have.message;
-        //     });
+                await expect(foundTransaction).to.not.have.message;
+            });
 
-        //     it ('should assert an error when expect tests transaction to have message but it does not', async () => {
-        //         const foundTransaction = channel.get(notMessageTransactionId);
+            it ('should assert an error when expect tests transaction to have message but it does not', async () => {
+                const foundTransaction = channel.get(notMessageTransactionId);
 
-        //         try {
-        //             await expect(foundTransaction).to.have.message;
-        //             chai.assert.fail('message should have asserted an error');
-        //         } catch(err) {
-        //             if (!err.message.includes(`Transaction ${notMessageTransactionId} does not have response message`)) {
-        //                 chai.assert.fail(err);
-        //             }
-        //         }
-        //     });
+                try {
+                    await expect(foundTransaction).to.have.message;
+                    chai.assert.fail('message should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${notMessageTransactionId} does not have response message`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
 
-        //     it ('should assert an error when expect tests transaction to not have message but it does', async () => {
-        //         const foundTransaction = channel.get(messageTransactionId);
+            it.skip ('should assert an error when expect tests transaction to not have message but it does', async () => {
+                const foundTransaction = channel.get(messageTransactionId);
 
-        //         try {
-        //             await expect(foundTransaction).to.not.have.message;
-        //             chai.assert.fail('message should have asserted an error');
-        //         } catch(err) {
-        //             if (!err.message.includes(`Transaction ${messageTransactionId} does have response message`)) {
-        //                 chai.assert.fail(err);
-        //             }
-        //         }
-        //     });
-        // });
+                try {
+                    await expect(foundTransaction).to.not.have.message;
+                    chai.assert.fail('message should have asserted an error');
+                } catch(err) {
+                    if (!err.message.includes(`Transaction ${messageTransactionId} does have response message`)) {
+                        chai.assert.fail(err);
+                    }
+                }
+            });
+        });
 
         describe('.exactPayload', () => {
             let returnValueTransactionId: string;

@@ -145,18 +145,10 @@ export class Transaction implements ITransaction {
     }
 
     public getMessage(): string {
-        if (this.isSuccessful()) {
-            throw new Error('Can only get message of unsuccessful transaction');
-        }
-
         return this.response.message;
     }
 
     public getPayload(): string {
-        if (!this.isSuccessful()) {
-            throw new Error('Can only get payload of successful transaction');
-        }
-
         return this.response.payload;
     }
 
